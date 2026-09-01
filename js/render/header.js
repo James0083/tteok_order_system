@@ -6,7 +6,6 @@ import { state } from '../state.js';
 export function renderHeader(){
   var tabs = [
     ['order', '주문하기'],
-    ['lookup', '주문조회·수정'],
     ['monitor', '모니터링'],
     ['admin', '관리자'],
   ];

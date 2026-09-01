@@ -22,8 +22,7 @@ export const state = {
   editing: null,          // { orderId, returnTab }
   submitError: '',
   confirmation: null,
-  lookup: { phone:'', searched:false, results:[] },
-  /* 주문조회·모니터링·관리자 탭 공용 직원 로그인 (Supabase Auth) */
+  /* 모니터링·관리자 탭 공용 직원 로그인 (Supabase Auth) */
   auth: {
     session: null,        // supabase-js session 객체, 로그인 전엔 null
     emailInput: '',
@@ -36,6 +35,9 @@ export const state = {
     date: addDays(todayStr(), 1),
     deleteConfirmId:null,
     banner:'',
+    search:'',            // 연락처 검색어 (비어있으면 날짜별 뷰)
+    searched:false,       // 검색 실행됨 → 결과 카드 표시 중
+    searchResults:[],
     settingsForm:{
       newStoreName:'', newStoreAddr:'', storeMsg:'', storeMsgType:'',
       prodName:'', prodMal:'', prodHalf:'', prodCut:false, prodNote:'', prodSurcharge:false,

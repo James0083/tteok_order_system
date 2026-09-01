@@ -73,9 +73,9 @@ export async function submitOrder(){
     state.editing = null;
     state.draft = makeEmptyDraft();
     resetFormFields();
-    state.tab = editing.returnTab || 'lookup';
-    if (state.tab === 'admin'){ state.admin.banner = '주문이 수정되었습니다.'; }
-    if (state.tab === 'lookup'){ doLookup(); return; }
+    state.tab = editing.returnTab || 'admin';
+    state.admin.banner = '주문이 수정되었습니다.';
+    if (state.tab === 'admin' && state.admin.searched){ runOrderSearch(); return; }
     render();
   } else {
     state.confirmation = Object.assign({ id:newId }, result.payload);
@@ -84,18 +84,25 @@ export async function submitOrder(){
   }
 }
 
-/* ---------- 주문조회 ---------- */
-export async function doLookup(){
-  var phone = (val('#lookup-phone') || state.lookup.phone).trim();
-  state.lookup.phone = phone;
-  if (!phone){ state.lookup.searched = false; state.lookup.results = []; render(); return; }
+/* ---------- 관리자 대시보드 : 연락처로 주문 검색 (날짜 무관) ---------- */
+export async function runOrderSearch(){
+  var raw = (state.admin.search || '').trim();
+  state.admin.search = raw;
+  var digits = phoneDigits(raw);
+  if (!digits){ clearOrderSearch(); return; }
   var orders = await loadOrders();
   state.orders = orders;
-  var digits = phone.replace(/[^0-9]/g, '');
-  var results = orders.filter(function(o){ return o.phone.replace(/[^0-9]/g, '') === digits; });
+  var results = orders.filter(function(o){ return phoneDigits(o.phone).indexOf(digits) > -1; });
   results.sort(function(a, b){ return b.createdAt.localeCompare(a.createdAt); });
-  state.lookup.searched = true;
-  state.lookup.results = results;
+  state.admin.searched = true;
+  state.admin.searchResults = results;
+  render();
+}
+
+export function clearOrderSearch(){
+  state.admin.search = '';
+  state.admin.searched = false;
+  state.admin.searchResults = [];
   render();
 }
 
@@ -110,7 +117,7 @@ export function startEditOrder(orderId, returnTab){
   });
   state.draft = draft;
   state.formFields = { phone:order.phone || '', date:order.deliveryDate, memo:order.memo || '', receiveMethod:order.receiveMethod || '', storeName:order.storeName || '', address:order.address || '', inStore:!!order.inStore };
-  state.editing = { orderId: order.id, returnTab: returnTab || 'lookup' };
+  state.editing = { orderId: order.id, returnTab: returnTab || 'admin' };
   state.confirmation = null;
   state.submitError = '';
   state.tab = 'order';
@@ -120,5 +127,6 @@ export function startEditOrder(orderId, returnTab){
 export async function cancelMyOrder(orderId){
   var ok = await updateOrder(orderId, { status:'취소' });
   if (ok) await refreshOrders();
-  doLookup();
+  if (state.admin.searched){ runOrderSearch(); }
+  else render();
 }

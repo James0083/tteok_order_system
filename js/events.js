@@ -10,7 +10,7 @@ import {
   renderReceiveDetail, renderPickerPanel, renderCartList,
   updateGrandTotal, updateRitualSub, refreshPickerAddButton, renderDateNotice,
 } from './render/order.js';
-import { submitOrder, doLookup, startEditOrder, cancelMyOrder } from './orders.js';
+import { submitOrder, runOrderSearch, clearOrderSearch, startEditOrder, cancelMyOrder } from './orders.js';
 import {
   staffLogin, staffLogout, changeOrderStatus, deleteOrder,
   addStore, deleteStore,
@@ -31,7 +31,7 @@ export function initEvents(){
         var tab = btn.getAttribute('data-tab');
         state.tab = tab;
         state.submitError = '';
-        if ((tab === 'admin' || tab === 'monitor' || tab === 'lookup') && isStaff()){
+        if ((tab === 'admin' || tab === 'monitor') && isStaff()){
           refreshOrders().then(render);
           return;
         }
@@ -91,7 +91,7 @@ export function initEvents(){
         break;
       }
       case 'cancel-edit': {
-        var back = state.editing ? state.editing.returnTab : 'lookup';
+        var back = state.editing ? state.editing.returnTab : 'admin';
         state.editing = null;
         state.draft = makeEmptyDraft();
         resetFormFields();
@@ -99,8 +99,9 @@ export function initEvents(){
         render();
         break;
       }
-      case 'do-lookup': { doLookup(); break; }
-      case 'edit-order': { startEditOrder(id, btn.getAttribute('data-return') || 'lookup'); break; }
+      case 'admin-search': { runOrderSearch(); break; }
+      case 'admin-search-clear': { clearOrderSearch(); break; }
+      case 'edit-order': { startEditOrder(id, btn.getAttribute('data-return') || 'admin'); break; }
       case 'cancel-my-order': { cancelMyOrder(id); break; }
 
       case 'staff-login': { staffLogin(); break; }
@@ -185,11 +186,11 @@ export function initEvents(){
       state.auth.emailInput = t.value;
     } else if (t.id === 'auth-password'){
       state.auth.passwordInput = t.value;
-    } else if (t.id === 'lookup-phone'){
+    } else if (t.id === 'admin-search'){
       var lp = formatPhone(t.value);
       t.value = lp;
       try { t.setSelectionRange(lp.length, lp.length); } catch (err){ /* noop */ }
-      state.lookup.phone = lp;
+      state.admin.search = lp;
     } else if (t.id === 'set-store-name'){
       state.admin.settingsForm.newStoreName = t.value;
     } else if (t.id === 'set-store-addr'){
@@ -242,6 +243,6 @@ export function initEvents(){
 
   app.addEventListener('keydown', function(e){
     if (e.key === 'Enter' && e.target && (e.target.id === 'auth-email' || e.target.id === 'auth-password')){ staffLogin(); }
-    if (e.key === 'Enter' && e.target && e.target.id === 'lookup-phone'){ doLookup(); }
+    if (e.key === 'Enter' && e.target && e.target.id === 'admin-search'){ runOrderSearch(); }
   });
 }

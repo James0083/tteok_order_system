@@ -3,8 +3,33 @@
    ============================================================ */
 import { state } from '../state.js';
 import { CONTACT } from '../config.js';
-import { esc, fmtWon, formatMal, shortId, receiveMethodLabel, orderItemsSummary } from '../utils.js';
+import { esc, fmtWon, formatMal, fmtDateLong, shortId, receiveMethodLabel, orderItemsSummary } from '../utils.js';
 import { findProduct } from '../catalog.js';
+
+/* 연락처 검색 결과 등에서 쓰는 주문 카드 (직원용) */
+export function renderOrderCard(order){
+  var actions = '';
+  if (order.status !== '취소'){
+    actions =
+      '<button class="btn btn-outline btn-sm" data-action="edit-order" data-id="' + order.id + '" data-return="admin">수정</button>' +
+      '<button class="btn btn-danger btn-sm" data-action="cancel-my-order" data-id="' + order.id + '">취소 처리</button>';
+  }
+  return (
+    '<div class="order-card">' +
+      '<div class="order-card-top">' +
+        '<div><div class="odate">' + esc(fmtDateLong(order.deliveryDate)) + '</div>' +
+          '<div class="oid">#' + esc(shortId(order.id)) + ' · ' + esc(order.phone || '연락처 없음') + ' · ' + esc(receiveMethodLabel(order)) + (order.inStore ? ' · 매장접수' : '') + '</div></div>' +
+        '<span class="badge badge-' + order.status + '">' + order.status + '</span>' +
+      '</div>' +
+      '<div class="order-items-sum">' + esc(orderItemsSummary(order)) + '</div>' +
+      (order.memo ? ('<div class="muted" style="font-size:12px; margin-bottom:8px;">메모: ' + esc(order.memo) + '</div>') : '') +
+      '<div class="order-card-bottom">' +
+        '<div class="order-amt">' + fmtWon(order.total) + '</div>' +
+        '<div class="card-actions">' + actions + '</div>' +
+      '</div>' +
+    '</div>'
+  );
+}
 
 export function renderContactFooter(){
   return '<footer class="contact-foot no-print">주문 관련 문의는 3일 전 미리 연락 부탁드립니다.<br>' +

@@ -3,19 +3,48 @@
    ============================================================ */
 import { state } from '../state.js';
 import { esc, fmtWon, fmtDateLong } from '../utils.js';
-import { statCard, renderProductionSummary, renderOrderStatusTable, renderTrend } from './shared.js';
+import { statCard, renderProductionSummary, renderOrderStatusTable, renderTrend, renderOrderCard } from './shared.js';
 import { renderStaffBar } from './auth.js';
+
+function renderSearchBar(){
+  var a = state.admin;
+  return '<div class="panel no-print" style="padding:12px 16px;">' +
+    '<div class="field-row" style="margin-bottom:0; align-items:flex-end;">' +
+      '<div class="field" style="flex:2;"><label>연락처로 주문 검색 <span class="muted">(전 기간 · 날짜 무관)</span></label>' +
+        '<input id="admin-search" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="' + esc(a.search) + '"></div>' +
+      '<div class="field" style="flex:0 0 auto; flex-direction:row; gap:6px;">' +
+        '<button class="btn btn-primary" data-action="admin-search">검색</button>' +
+        (a.searched ? '<button class="btn btn-outline" data-action="admin-search-clear">날짜별 보기</button>' : '') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
 
 export function renderAdminTab(){
   if (state.admin.view === 'settings'){ return renderAdminSettings(); }
 
   var a = state.admin;
-  var dateOrders = state.orders.filter(function(o){ return o.deliveryDate === a.date; });
-  var activeOrders = dateOrders.filter(function(o){ return o.status !== '취소'; });
 
   var html = '<div class="wrap-wide">';
   html += renderStaffBar();
   if (a.banner){ html += '<div class="notice notice-info no-print" style="margin-bottom:12px;">' + esc(a.banner) + '</div>'; }
+
+  html += renderSearchBar();
+
+  if (a.searched){
+    var r = a.searchResults;
+    if (!r.length){
+      html += '<div class="empty-state">"' + esc(a.search) + '" 연락처로 접수된 주문이 없습니다.</div>';
+    } else {
+      html += '<h2 style="margin:4px 0 12px;">검색 결과 ' + r.length + '건</h2>';
+      html += r.map(renderOrderCard).join('');
+    }
+    html += '</div>';
+    return html;
+  }
+
+  var dateOrders = state.orders.filter(function(o){ return o.deliveryDate === a.date; });
+  var activeOrders = dateOrders.filter(function(o){ return o.status !== '취소'; });
 
   html += '<div class="date-nav no-print">';
   html += '<button class="btn btn-outline btn-sm" data-action="admin-date-prev">◀</button>';

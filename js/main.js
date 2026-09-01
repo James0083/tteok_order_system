@@ -24,9 +24,11 @@ onAuthChange(function(session){
   } else if (wasLoggedIn){
     // 로그아웃: 직원 화면에 있던 데이터를 메모리에서 비우고 주문 탭으로.
     state.orders = [];
-    state.lookup = { phone:'', searched:false, results:[] };
     state.admin.view = 'dashboard';
     state.admin.deleteConfirmId = null;
+    state.admin.search = '';
+    state.admin.searched = false;
+    state.admin.searchResults = [];
     state.tab = 'order';
     resetFormFields();
     render();

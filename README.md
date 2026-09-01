@@ -20,7 +20,7 @@ js/
   supabaseClient.js   supabase-js 클라이언트 생성 (CDN ESM)
   auth.js             직원 로그인 (Supabase Auth: signIn/signOut/세션 구독)
   store.js            데이터 접근 계층 (orders / stores / products CRUD)
-  orders.js           주문 제출·조회·수정·취소 액션
+  orders.js           주문 제출·검색·수정·취소 액션
   admin.js            직원 로그인 액션 + 관리자 액션(상태변경, 매장·떡 관리)
   events.js           #app 이벤트 위임
   main.js             앱 진입점 (세션 로드, 로그인 상태 구독)
@@ -28,11 +28,10 @@ js/
     index.js          렌더 오케스트레이터 (render()) — 직원 전용 탭 게이트
     header.js          헤더/탭
     order.js           주문 탭 + 렌더 후처리
-    lookup.js          주문조회·수정 탭 (직원 전용)
     monitor.js         모니터링 탭 (직원 전용)
-    admin.js           관리자 탭(대시보드/설정) (직원 전용)
+    admin.js           관리자 탭 — 대시보드/연락처검색/설정 (직원 전용)
     auth.js             직원 로그인 화면 + 로그인 상태 표시줄
-    shared.js          탭 공용 조각 (생산분 요약, 주문표, 통계)
+    shared.js          탭 공용 조각 (생산분 요약, 주문표, 주문카드, 통계)
 supabase/
   schema.sql          테이블(orders/stores/products) + RLS 정책
 ```
@@ -59,7 +58,7 @@ export const SUPABASE_ANON_KEY = 'eyJhbGci...';
 > 아래 직원 계정(Supabase Auth)이 담당합니다.
 
 ### 3. 직원 계정 만들기
-주문조회·모니터링·관리자 화면은 로그인해야 보입니다. 앱에는 회원가입 화면이 없으므로
+모니터링·관리자 화면은 로그인해야 보입니다. 앱에는 회원가입 화면이 없으므로
 계정은 Supabase 대시보드에서 직접 만듭니다.
 
 1. 대시보드 → **Authentication → Users → Add user**
@@ -117,10 +116,15 @@ python3 -m http.server 5173
 `js/env.js` 를 만든 뒤 `actions/deploy-pages` 로 배포하세요. (단, 키는 결국 브라우저로
 전송되므로 "git 이력에 안 남는다"는 효과뿐입니다.)
 
+## 화면 구성
+- **주문하기** (공개): 고객이 새 주문 접수. 로그인 불필요.
+- **모니터링** (직원): 날짜별 생산분 요약·주문 목록.
+- **관리자** (직원): 날짜별 대시보드 + **연락처 검색**(전 기간, 날짜 무관하게 주문 카드로 조회·수정·취소) + 설정(매장·떡 종류).
+
 ## 직원 로그인
-- PIN 방식은 폐지되었습니다. 주문조회·모니터링·관리자 탭은 **Supabase Auth 이메일 로그인**으로 보호됩니다.
+- PIN 방식은 폐지되었습니다. 모니터링·관리자 탭은 **Supabase Auth 이메일 로그인**으로 보호됩니다.
 - 계정은 앱이 아니라 Supabase 대시보드 → Authentication → Users 에서 만듭니다. (위 "3. 직원 계정 만들기" 참고)
-- 권한 차등은 없습니다 — 로그인한 사람은 세 탭 모두, 모든 조작이 가능합니다.
+- 권한 차등은 없습니다 — 로그인한 사람은 두 탭 모두, 모든 조작이 가능합니다.
 - 로그아웃은 각 탭 우측 상단 "로그아웃" 버튼.
 
 ## 보안 참고
