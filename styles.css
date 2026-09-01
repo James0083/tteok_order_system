@@ -59,6 +59,7 @@ main{flex:1; width:100%;}
 .req::after{content:' *'; color:var(--red);}
 .checkline{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-soft); margin:8px 0 2px; cursor:pointer;}
 .checkline input{width:auto; margin:0;}
+.staff-bar{display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-bottom:10px; font-size:12.5px;}
 
 .notice{font-size:12.5px; padding:9px 11px; border-radius:4px; margin-top:6px; line-height:1.5;}
 .notice-warn{background:#FBF0DD; color:#7A5A16; border:1px solid #E9CE95;}

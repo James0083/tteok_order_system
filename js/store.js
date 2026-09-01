@@ -3,13 +3,12 @@
    ------------------------------------------------------------
    기존 Claude 아티팩트 window.storage 를 대체합니다.
    - orders   : 주문 1건 = 1 row
-   - config   : id=1 단일 row (PIN 보관)
    - stores   : 매장 1개 = 1 row
    - products : 떡 종류 1개 = 1 row
    모든 함수는 Promise 를 반환합니다.
    ============================================================ */
 import { supabase } from './supabaseClient.js';
-import { DEFAULT_ADMIN_PIN, DEFAULT_STAFF_PIN, DEFAULT_PRODUCTS } from './config.js';
+import { DEFAULT_PRODUCTS } from './config.js';
 import { state } from './state.js';
 
 /* ---------- row <-> 앱 객체 매핑 ---------- */
@@ -120,27 +119,7 @@ export async function removeOrder(id){
   return true;
 }
 
-/* ---------- 설정(PIN) ---------- */
-export async function loadConfig(){
-  const fallback = { adminPin: DEFAULT_ADMIN_PIN, staffPin: DEFAULT_STAFF_PIN };
-  if (!supabase) return fallback;
-  const { data, error } = await supabase.from('config').select('*').eq('id', 1).maybeSingle();
-  if (error){ console.error('loadConfig', error); return fallback; }
-  if (!data) return fallback;
-  return {
-    adminPin: data.admin_pin || DEFAULT_ADMIN_PIN,
-    staffPin: data.staff_pin || DEFAULT_STAFF_PIN,
-  };
-}
-
-export async function saveConfig(cfg){
-  if (!supabase) return false;
-  const { error } = await supabase
-    .from('config')
-    .upsert({ id: 1, admin_pin: cfg.adminPin, staff_pin: cfg.staffPin });
-  if (error){ console.error('saveConfig', error); return false; }
-  return true;
-}
+/* config(PIN) 테이블/함수는 폐지되었습니다. 직원 인증은 Supabase Auth(js/auth.js)를 사용합니다. */
 
 /* ---------- 매장 ---------- */
 export async function loadStores(){

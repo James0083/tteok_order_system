@@ -10,29 +10,31 @@
 index.html            진입 HTML (마크업 + CSS/JS 링크만)
 styles.css            전체 스타일
 js/
-  config.js           기본 상수·시딩용 상품 데이터 (DEFAULT_PRODUCTS, RITUAL_ITEMS, PIN 기본값)
+  config.js           기본 상수·시딩용 상품 데이터 (DEFAULT_PRODUCTS, RITUAL_ITEMS)
   catalog.js          떡 종류 런타임 조회 헬퍼 (products 테이블 기반, 가나다 정렬)
   utils.js            포맷·escape·전화번호 포맷 등 공용 유틸
   state.js            전역 상태 객체 + 초기화 헬퍼
   pricing.js          가격/추가요금 계산
-  env.js              Supabase URL / anon key  ← 직접 채워야 함 (git 제외)
+  env.js              Supabase URL / anon key  ← 직접 채워야 함
   env.example.js      env.js 템플릿
   supabaseClient.js   supabase-js 클라이언트 생성 (CDN ESM)
-  store.js            데이터 접근 계층 (orders / config / stores CRUD)
+  auth.js             직원 로그인 (Supabase Auth: signIn/signOut/세션 구독)
+  store.js            데이터 접근 계층 (orders / stores / products CRUD)
   orders.js           주문 제출·조회·수정·취소 액션
-  admin.js            관리자/모니터링 액션 (PIN, 상태변경, 매장관리)
+  admin.js            직원 로그인 액션 + 관리자 액션(상태변경, 매장·떡 관리)
   events.js           #app 이벤트 위임
-  main.js             앱 진입점
+  main.js             앱 진입점 (세션 로드, 로그인 상태 구독)
   render/
-    index.js          렌더 오케스트레이터 (render())
+    index.js          렌더 오케스트레이터 (render()) — 직원 전용 탭 게이트
     header.js          헤더/탭
     order.js           주문 탭 + 렌더 후처리
-    lookup.js          주문조회·수정 탭
-    monitor.js         모니터링 탭
-    admin.js           관리자 탭(대시보드/설정)
+    lookup.js          주문조회·수정 탭 (직원 전용)
+    monitor.js         모니터링 탭 (직원 전용)
+    admin.js           관리자 탭(대시보드/설정) (직원 전용)
+    auth.js             직원 로그인 화면 + 로그인 상태 표시줄
     shared.js          탭 공용 조각 (생산분 요약, 주문표, 통계)
 supabase/
-  schema.sql          테이블(orders/config/stores/products) + RLS 정책
+  schema.sql          테이블(orders/stores/products) + RLS 정책
 ```
 
 > 떡 종류는 `products` 테이블에서 관리하며, 처음 실행 시 `DEFAULT_PRODUCTS` 로 자동 시딩됩니다.
@@ -53,10 +55,21 @@ export const SUPABASE_URL = 'https://xxxxxxxx.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGci...';
 ```
 
-> `env.js` 는 공개 저장소에 커밋하지 마세요. (`.gitignore` 에 이미 포함)
-> anon 키는 브라우저에 노출되는 공개 키이며, 접근 제어는 `schema.sql` 의 RLS 정책으로 합니다.
+> anon 키는 브라우저에 노출되는 공개 키이며, 실제 접근 제어는 `schema.sql` 의 RLS 정책 +
+> 아래 직원 계정(Supabase Auth)이 담당합니다.
 
-### 3. 로컬 실행
+### 3. 직원 계정 만들기
+주문조회·모니터링·관리자 화면은 로그인해야 보입니다. 앱에는 회원가입 화면이 없으므로
+계정은 Supabase 대시보드에서 직접 만듭니다.
+
+1. 대시보드 → **Authentication → Users → Add user**
+2. 이메일/비밀번호 입력, **Auto Confirm User** 체크 (이메일 인증 없이 바로 로그인 가능하게)
+3. 직원마다 하나씩 만들거나, 매장 공용 계정 하나만 만들어도 됩니다 (권한 차등은 없음 — 로그인하면 전부 접근 가능)
+
+> **Authentication → Providers → Email → "Allow new users to sign up"** 은 꺼두는 걸 권장합니다.
+> (이 앱은 로그인 폼만 있고 가입 폼은 없지만, API로 직접 가입을 시도하는 걸 막아줍니다.)
+
+### 4. 로컬 실행
 ES 모듈은 `file://` 로 열 수 없으므로 정적 서버가 필요합니다.
 
 ```bash
@@ -67,7 +80,7 @@ python3 -m http.server 5173
 
 그다음 브라우저에서 `http://localhost:5173` (또는 serve 가 안내한 주소) 접속.
 
-### 4. 배포 (GitHub Pages)
+### 5. 배포 (GitHub Pages)
 
 정적 파일만 있으므로 빌드 없이 배포됩니다. 모든 경로가 상대경로(`./js/…`)라
 `username.github.io/repo/` 같은 하위 경로에서도 그대로 동작합니다.
@@ -104,22 +117,15 @@ python3 -m http.server 5173
 `js/env.js` 를 만든 뒤 `actions/deploy-pages` 로 배포하세요. (단, 키는 결국 브라우저로
 전송되므로 "git 이력에 안 남는다"는 효과뿐입니다.)
 
-### ⚠️ 공개 배포 전 반드시 확인
-
-현재 `supabase/schema.sql` 의 RLS 는 **누구나 모든 테이블 읽기/쓰기** 허용입니다.
-사이트 주소만 알면 주문 열람·삭제, PIN 변경이 가능합니다 (PIN 검사는 브라우저에서만).
-실제 고객에게 오픈하기 전에 최소한 다음을 적용하세요:
-
-- 쓰기는 `orders` insert 만 허용, `update/delete` 와 `config` 는 차단
-- 관리자·주문조회 화면은 Supabase Auth(이메일 로그인) 뒤로 이동
-- 또는 관리 기능을 별도 비공개 배포로 분리
-
-## 기본 PIN
-- 관리자: `0207`
-- 직원(모니터링): `1111`
-
-관리자 화면 → 설정에서 변경할 수 있고, 변경값은 `config` 테이블에 저장됩니다.
+## 직원 로그인
+- PIN 방식은 폐지되었습니다. 주문조회·모니터링·관리자 탭은 **Supabase Auth 이메일 로그인**으로 보호됩니다.
+- 계정은 앱이 아니라 Supabase 대시보드 → Authentication → Users 에서 만듭니다. (위 "3. 직원 계정 만들기" 참고)
+- 권한 차등은 없습니다 — 로그인한 사람은 세 탭 모두, 모든 조작이 가능합니다.
+- 로그아웃은 각 탭 우측 상단 "로그아웃" 버튼.
 
 ## 보안 참고
-PIN 검증은 클라이언트에서만 이뤄지고 anon 키로 모든 테이블에 접근할 수 있는 데모 수준입니다.
-실제 매장 운영에 쓰려면 `supabase/schema.sql` 하단 주석의 강화 방안을 검토하세요.
+- **고객(비로그인)**: 새 주문 등록만 가능. 기존 주문 조회·수정·삭제, 매장/떡 목록 수정은 불가.
+- **직원(로그인)**: 주문 조회·수정·삭제, 매장/떡 목록 관리 가능.
+- 실제 접근 제어는 anon 키가 아니라 `supabase/schema.sql` 의 RLS 정책(`auth.role() = 'authenticated'`)이 합니다 — REST API를 직접 두드려도 우회할 수 없습니다.
+- 기존 프로젝트에서 이 버전으로 올릴 때는 **`supabase/schema.sql`을 다시 실행**해서 RLS를 갱신하세요. 실행 전까지는 예전처럼 "누구나 읽기/쓰기" 상태입니다.
+- 예전 PIN 저장용 `config` 테이블은 schema.sql 재실행 시 `drop table` 로 자동 정리됩니다.

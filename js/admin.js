@@ -1,42 +1,46 @@
 /* ============================================================
-   관리자 / 모니터링 액션
+   직원 로그인 / 관리자 / 매장 / 떡 종류 액션
    ============================================================ */
 import { state } from './state.js';
 import { val, genId } from './utils.js';
 import { nextProductId } from './catalog.js';
+import { signIn, signOut } from './auth.js';
 import {
   refreshOrders, updateOrder, removeOrder,
-  saveConfig, insertStore, removeStore, refreshStores,
+  insertStore, removeStore, refreshStores,
   insertProduct, updateProduct, removeProduct, refreshProducts,
 } from './store.js';
 import { render } from './render/index.js';
 
-export async function adminUnlock(){
-  var pin = val('#admin-pin');
-  if (pin && pin === state.config.adminPin){
-    state.admin.unlocked = true;
-    state.admin.pinError = '';
-    await refreshOrders();
+/* ---------- 직원 로그인 ---------- */
+export async function staffLogin(){
+  var a = state.auth;
+  if (!a.emailInput || !a.passwordInput){
+    a.error = '이메일과 비밀번호를 입력해주세요.';
     render();
-  } else {
-    state.admin.pinError = 'PIN이 일치하지 않습니다.';
-    render();
+    return;
   }
+  a.busy = true; a.error = '';
+  render();
+  var result = await signIn(a.emailInput, a.passwordInput);
+  a.busy = false;
+  if (result.error){
+    a.error = '로그인에 실패했습니다: ' + result.error;
+    render();
+    return;
+  }
+  a.passwordInput = '';
+  a.error = '';
+  // 세션은 auth.js 의 onAuthStateChange 구독(main.js)이 감지해 state.auth.session 을 채우고 다시 render() 합니다.
 }
 
-export async function monitorUnlock(){
-  var pin = val('#monitor-pin');
-  if (pin && pin === state.config.staffPin){
-    state.monitor.unlocked = true;
-    state.monitor.pinError = '';
-    await refreshOrders();
-    render();
-  } else {
-    state.monitor.pinError = 'PIN이 일치하지 않습니다.';
-    render();
-  }
+export async function staffLogout(){
+  await signOut();
+  state.tab = 'order';
+  // state.auth.session 갱신 및 render() 는 onAuthStateChange 구독이 처리합니다.
 }
 
+/* ---------- 관리자 주문 관리 ---------- */
 export async function changeOrderStatus(orderId, newStatus){
   var ok = await updateOrder(orderId, { status:newStatus });
   if (ok) await refreshOrders();
@@ -50,34 +54,7 @@ export async function deleteOrder(orderId){
   render();
 }
 
-export async function saveAdminPin(){
-  var sf = state.admin.settingsForm;
-  var a = val('#set-admin-pin-new'), b = val('#set-admin-pin-confirm');
-  if (!a || a.length < 4){ sf.pinMsg = 'PIN은 4자리 이상으로 입력해주세요.'; sf.pinMsgType = 'error'; render(); return; }
-  if (a !== b){ sf.pinMsg = '확인 PIN이 일치하지 않습니다.'; sf.pinMsgType = 'error'; render(); return; }
-  var newCfg = Object.assign({}, state.config, { adminPin:a });
-  var ok = await saveConfig(newCfg);
-  if (!ok){ sf.pinMsg = '저장에 실패했습니다. (백엔드 연결 확인)'; sf.pinMsgType = 'error'; render(); return; }
-  state.config = newCfg;
-  sf.adminPinNew = ''; sf.adminPinConfirm = '';
-  sf.pinMsg = '관리자 PIN이 변경되었습니다.'; sf.pinMsgType = 'ok';
-  render();
-}
-
-export async function saveStaffPin(){
-  var sf = state.admin.settingsForm;
-  var a = val('#set-staff-pin-new'), b = val('#set-staff-pin-confirm');
-  if (!a || a.length < 4){ sf.pinMsg = 'PIN은 4자리 이상으로 입력해주세요.'; sf.pinMsgType = 'error'; render(); return; }
-  if (a !== b){ sf.pinMsg = '확인 PIN이 일치하지 않습니다.'; sf.pinMsgType = 'error'; render(); return; }
-  var newCfg = Object.assign({}, state.config, { staffPin:a });
-  var ok = await saveConfig(newCfg);
-  if (!ok){ sf.pinMsg = '저장에 실패했습니다. (백엔드 연결 확인)'; sf.pinMsgType = 'error'; render(); return; }
-  state.config = newCfg;
-  sf.staffPinNew = ''; sf.staffPinConfirm = '';
-  sf.pinMsg = '직원용 PIN이 변경되었습니다.'; sf.pinMsgType = 'ok';
-  render();
-}
-
+/* ---------- 매장 관리 ---------- */
 export async function addStore(){
   var sf = state.admin.settingsForm;
   var name = val('#set-store-name').trim();

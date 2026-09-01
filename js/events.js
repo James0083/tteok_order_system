@@ -1,7 +1,7 @@
 /* ============================================================
    이벤트 위임 (#app 에 한 번만 바인딩)
    ============================================================ */
-import { state, makeEmptyDraft, resetFormFields } from './state.js';
+import { state, makeEmptyDraft, resetFormFields, isStaff } from './state.js';
 import { addDays, todayStr, formatPhone } from './utils.js';
 import { findProduct } from './catalog.js';
 import { refreshOrders } from './store.js';
@@ -12,8 +12,8 @@ import {
 } from './render/order.js';
 import { submitOrder, doLookup, startEditOrder, cancelMyOrder } from './orders.js';
 import {
-  adminUnlock, monitorUnlock, changeOrderStatus, deleteOrder,
-  saveAdminPin, saveStaffPin, addStore, deleteStore,
+  staffLogin, staffLogout, changeOrderStatus, deleteOrder,
+  addStore, deleteStore,
   addProduct, deleteProduct, saveProductEdit,
 } from './admin.js';
 
@@ -31,8 +31,10 @@ export function initEvents(){
         var tab = btn.getAttribute('data-tab');
         state.tab = tab;
         state.submitError = '';
-        if (tab === 'admin' && state.admin.unlocked){ refreshOrders().then(render); return; }
-        if (tab === 'monitor' && state.monitor.unlocked){ refreshOrders().then(render); return; }
+        if ((tab === 'admin' || tab === 'monitor' || tab === 'lookup') && isStaff()){
+          refreshOrders().then(render);
+          return;
+        }
         render();
         break;
       }
@@ -101,7 +103,9 @@ export function initEvents(){
       case 'edit-order': { startEditOrder(id, btn.getAttribute('data-return') || 'lookup'); break; }
       case 'cancel-my-order': { cancelMyOrder(id); break; }
 
-      case 'admin-unlock': { adminUnlock(); break; }
+      case 'staff-login': { staffLogin(); break; }
+      case 'staff-logout': { staffLogout(); break; }
+
       case 'admin-date-prev': { state.admin.date = addDays(state.admin.date, -1); render(); break; }
       case 'admin-date-next': { state.admin.date = addDays(state.admin.date, 1); render(); break; }
       case 'admin-date-today': { state.admin.date = addDays(todayStr(), 1); render(); break; }
@@ -112,8 +116,6 @@ export function initEvents(){
       case 'admin-delete': { state.admin.deleteConfirmId = id; render(); break; }
       case 'admin-delete-cancel': { state.admin.deleteConfirmId = null; render(); break; }
       case 'admin-delete-confirm': { deleteOrder(id); break; }
-      case 'save-admin-pin': { saveAdminPin(); break; }
-      case 'save-staff-pin': { saveStaffPin(); break; }
       case 'add-store': { addStore(); break; }
       case 'delete-store': { deleteStore(id); break; }
       case 'add-product': { addProduct(); break; }
@@ -140,7 +142,6 @@ export function initEvents(){
       case 'edit-product-cancel': { state.admin.settingsForm.prodEdit = null; render(); break; }
       case 'save-product': { saveProductEdit(); break; }
 
-      case 'monitor-unlock': { monitorUnlock(); break; }
       case 'monitor-date-prev': { state.monitor.date = addDays(state.monitor.date, -1); render(); break; }
       case 'monitor-date-next': { state.monitor.date = addDays(state.monitor.date, 1); render(); break; }
       case 'monitor-date-today': { state.monitor.date = todayStr(); render(); break; }
@@ -180,23 +181,15 @@ export function initEvents(){
       state.admin.date = t.value; render();
     } else if (t.id === 'monitor-date'){
       state.monitor.date = t.value; render();
-    } else if (t.id === 'admin-pin'){
-      state.admin.pinInput = t.value;
-    } else if (t.id === 'monitor-pin'){
-      state.monitor.pinInput = t.value;
+    } else if (t.id === 'auth-email'){
+      state.auth.emailInput = t.value;
+    } else if (t.id === 'auth-password'){
+      state.auth.passwordInput = t.value;
     } else if (t.id === 'lookup-phone'){
       var lp = formatPhone(t.value);
       t.value = lp;
       try { t.setSelectionRange(lp.length, lp.length); } catch (err){ /* noop */ }
       state.lookup.phone = lp;
-    } else if (t.id === 'set-admin-pin-new'){
-      state.admin.settingsForm.adminPinNew = t.value;
-    } else if (t.id === 'set-admin-pin-confirm'){
-      state.admin.settingsForm.adminPinConfirm = t.value;
-    } else if (t.id === 'set-staff-pin-new'){
-      state.admin.settingsForm.staffPinNew = t.value;
-    } else if (t.id === 'set-staff-pin-confirm'){
-      state.admin.settingsForm.staffPinConfirm = t.value;
     } else if (t.id === 'set-store-name'){
       state.admin.settingsForm.newStoreName = t.value;
     } else if (t.id === 'set-store-addr'){
@@ -248,8 +241,7 @@ export function initEvents(){
   });
 
   app.addEventListener('keydown', function(e){
-    if (e.key === 'Enter' && e.target && e.target.id === 'admin-pin'){ adminUnlock(); }
-    if (e.key === 'Enter' && e.target && e.target.id === 'monitor-pin'){ monitorUnlock(); }
+    if (e.key === 'Enter' && e.target && (e.target.id === 'auth-email' || e.target.id === 'auth-password')){ staffLogin(); }
     if (e.key === 'Enter' && e.target && e.target.id === 'lookup-phone'){ doLookup(); }
   });
 }

@@ -3,13 +3,15 @@
    ============================================================ */
 import { state } from '../state.js';
 import { esc, fmtWon, fmtDateLong, shortId, receiveMethodLabel, orderItemsSummary } from '../utils.js';
+import { renderStaffBar } from './auth.js';
 
 export function renderLookupTab(){
   var l = state.lookup;
   var html = '<div class="wrap">';
+  html += renderStaffBar();
   html += '<div class="panel">';
   html += '<h2>주문조회·수정</h2>';
-  html += '<p class="panel-sub">주문하실 때 입력하신 연락처로 조회할 수 있어요.</p>';
+  html += '<p class="panel-sub">고객 연락처로 주문을 조회·수정·취소합니다. (전화 문의 시 사용)</p>';
   html += '<div class="field-row">';
   html += '<div class="field" style="flex:2;"><label>연락처</label><input id="lookup-phone" type="tel" placeholder="010-0000-0000" value="' + esc(l.phone) + '"></div>';
   html += '<div class="field" style="justify-content:flex-end;"><button class="btn btn-primary" data-action="do-lookup" style="height:38px;">조회</button></div>';

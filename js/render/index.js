@@ -1,14 +1,20 @@
 /* ============================================================
    렌더 : 최상위 오케스트레이터
    ============================================================ */
-import { state } from '../state.js';
+import { state, isStaff } from '../state.js';
 import { renderHeader } from './header.js';
 import { renderOrderTab, afterOrderRender } from './order.js';
 import { renderLookupTab } from './lookup.js';
 import { renderMonitorTab } from './monitor.js';
 import { renderAdminTab } from './admin.js';
+import { renderStaffLogin } from './auth.js';
+
+var STAFF_ONLY_TABS = ['lookup', 'monitor', 'admin'];
 
 function renderTabContent(){
+  if (STAFF_ONLY_TABS.indexOf(state.tab) > -1 && !isStaff()){
+    return renderStaffLogin();
+  }
   if (state.tab === 'order') return renderOrderTab();
   if (state.tab === 'lookup') return renderLookupTab();
   if (state.tab === 'monitor') return renderMonitorTab();

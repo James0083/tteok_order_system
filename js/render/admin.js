@@ -1,12 +1,12 @@
 /* ============================================================
-   렌더 : 관리자 탭 (대시보드 / 설정)
+   렌더 : 관리자 탭 (대시보드 / 설정) — 직원 로그인 필요 (render/index.js 게이트)
    ============================================================ */
 import { state } from '../state.js';
 import { esc, fmtWon, fmtDateLong } from '../utils.js';
 import { statCard, renderProductionSummary, renderOrderStatusTable, renderTrend } from './shared.js';
+import { renderStaffBar } from './auth.js';
 
 export function renderAdminTab(){
-  if (!state.admin.unlocked){ return renderAdminPin(); }
   if (state.admin.view === 'settings'){ return renderAdminSettings(); }
 
   var a = state.admin;
@@ -14,6 +14,7 @@ export function renderAdminTab(){
   var activeOrders = dateOrders.filter(function(o){ return o.status !== '취소'; });
 
   var html = '<div class="wrap-wide">';
+  html += renderStaffBar();
   if (a.banner){ html += '<div class="notice notice-info no-print" style="margin-bottom:12px;">' + esc(a.banner) + '</div>'; }
 
   html += '<div class="date-nav no-print">';
@@ -54,44 +55,15 @@ export function renderAdminTab(){
   return html;
 }
 
-export function renderAdminPin(){
-  var a = state.admin;
-  var html = '<div class="wrap pin-box">';
-  html += '<div class="brand-mark" style="margin:0 auto;">떡</div>';
-  html += '<h2 style="margin:14px 0 4px;">관리자 확인</h2>';
-  html += '<p class="muted" style="font-size:13px; margin-bottom:16px;">생산분 모니터링·설정 화면으로 이동하려면 PIN을 입력하세요.</p>';
-  html += '<input id="admin-pin" type="password" inputmode="numeric" placeholder="PIN" value="' + esc(a.pinInput) + '" style="margin-bottom:10px;">';
-  if (a.pinError){ html += '<div class="notice notice-error" style="margin-bottom:10px;">' + esc(a.pinError) + '</div>'; }
-  html += '<button class="btn btn-primary" data-action="admin-unlock" style="width:100%;">입장</button>';
-  html += '</div>';
-  return html;
-}
-
-/* ---------- 관리자 설정 (PIN 변경, 매장 관리) ---------- */
+/* ---------- 관리자 설정 (매장·떡 종류 관리) ---------- */
 export function renderAdminSettings(){
   var sf = state.admin.settingsForm;
   var html = '<div class="wrap-wide">';
+  html += renderStaffBar();
   html += '<div class="date-nav no-print"><span class="dtitle">관리자 설정</span><span style="flex:1;"></span>' +
     '<button class="btn btn-outline btn-sm" data-action="admin-back-dashboard">← 대시보드로</button></div>';
 
   html += '<div class="settings-grid">';
-
-  html += '<div class="panel">';
-  html += '<h2>PIN 변경</h2>';
-  html += '<p class="panel-sub">관리자 PIN과 모니터링(직원용) PIN을 각각 바꿀 수 있어요.</p>';
-  if (sf.pinMsg){ html += '<div class="notice ' + (sf.pinMsgType === 'error' ? 'notice-error' : 'notice-ok') + '">' + esc(sf.pinMsg) + '</div>'; }
-  html += '<div class="field-row" style="margin-top:8px;">';
-  html += '<div class="field"><label>새 관리자 PIN</label><input id="set-admin-pin-new" type="password" inputmode="numeric" value="' + esc(sf.adminPinNew) + '"></div>';
-  html += '<div class="field"><label>확인</label><input id="set-admin-pin-confirm" type="password" inputmode="numeric" value="' + esc(sf.adminPinConfirm) + '"></div>';
-  html += '</div>';
-  html += '<button class="btn btn-outline btn-sm" data-action="save-admin-pin">관리자 PIN 저장</button>';
-  html += '<hr style="border:none; border-top:1px solid var(--line); margin:16px 0;">';
-  html += '<div class="field-row">';
-  html += '<div class="field"><label>새 직원용(모니터링) PIN</label><input id="set-staff-pin-new" type="password" inputmode="numeric" value="' + esc(sf.staffPinNew) + '"></div>';
-  html += '<div class="field"><label>확인</label><input id="set-staff-pin-confirm" type="password" inputmode="numeric" value="' + esc(sf.staffPinConfirm) + '"></div>';
-  html += '</div>';
-  html += '<button class="btn btn-outline btn-sm" data-action="save-staff-pin">직원용 PIN 저장</button>';
-  html += '</div>';
 
   html += '<div class="panel">';
   html += '<h2>매장 관리</h2>';
@@ -114,6 +86,12 @@ export function renderAdminSettings(){
   html += '<button class="btn btn-outline btn-sm" data-action="add-store">매장 추가</button>';
   html += '</div>';
 
+  html += '<div class="panel">';
+  html += '<h2>직원 계정</h2>';
+  html += '<p class="panel-sub">주문조회·모니터링·관리자 화면 로그인은 Supabase Auth 계정으로 관리합니다.</p>';
+  html += '<div class="notice notice-info">직원 계정 추가·삭제·비밀번호 재설정은 Supabase 대시보드 → Authentication → Users 에서 합니다. 이 앱에는 회원가입 화면이 없습니다.</div>';
+  html += '</div>';
+
   html += '</div>'; // settings-grid
 
   html += renderProductManager();
@@ -127,12 +105,12 @@ function renderProductManager(){
   var sf = state.admin.settingsForm;
   var list = state.products.slice().sort(function(a, b){ return a.name.localeCompare(b.name, 'ko'); });
 
+  var editId = sf.prodEdit ? sf.prodEdit.id : null;
+
   var html = '<div class="panel">';
   html += '<h2>떡 종류 관리</h2>';
   html += '<p class="panel-sub">주문서의 "떡 담기" 드롭다운에 나오는 목록입니다. 가나다순으로 표시됩니다.</p>';
   if (sf.prodMsg){ html += '<div class="notice ' + (sf.prodMsgType === 'error' ? 'notice-error' : 'notice-ok') + '">' + esc(sf.prodMsg) + '</div>'; }
-
-  var editId = sf.prodEdit ? sf.prodEdit.id : null;
 
   html += '<div class="table-scroll" style="margin-bottom:12px;"><table class="dtab" style="min-width:0;">';
   html += '<thead><tr><th>떡 이름</th><th class="num">1말</th><th class="num">1/2말</th><th>쪽수선택</th><th>추가요금</th><th class="no-print">관리</th></tr></thead><tbody>';
