@@ -3,7 +3,7 @@
    ============================================================ */
 import { state } from '../state.js';
 import { esc, todayStr, fmtDateLong } from '../utils.js';
-import { statCard, renderProductionSummary, renderOrderStatusTable } from './shared.js';
+import { statCard, renderProductionSummary, renderOrderStatusTable, weightText } from './shared.js';
 import { renderStaffBar } from './auth.js';
 
 export function renderMonitorTab(){
@@ -11,8 +11,6 @@ export function renderMonitorTab(){
   var isToday = d === todayStr();
   var dateOrders = state.orders.filter(function(o){ return o.deliveryDate === d; });
   var active = dateOrders.filter(function(o){ return o.status !== '취소'; });
-  var totalKg = 0;
-  active.forEach(function(o){ o.items.forEach(function(i){ totalKg += (i.unit === 'mal' ? i.qty * 10 : i.qty * 5); }); });
 
   var html = '<div class="wrap-wide">';
   html += renderStaffBar();
@@ -29,7 +27,7 @@ export function renderMonitorTab(){
 
   html += '<div class="stat-cards">';
   html += statCard('주문 건수', active.length + '건');
-  html += statCard('총 생산 중량', totalKg.toLocaleString('ko-KR') + 'kg');
+  html += statCard('총 생산 중량', weightText(active));
   html += '</div>';
 
   html += '<div class="panel" id="print-area">';

@@ -47,6 +47,21 @@ export function formatMal(n){
   return r + '말';
 }
 
+export function unitName(unit){
+  if (unit === 'mal') return '1말';
+  if (unit === 'half') return '1/2말';
+  if (unit === 'kg') return '1kg';
+  if (unit === 'piece') return '낱개';
+  return unit || '';
+}
+
+/* 장바구니/요약에 쓰는 "단위 × 수량" 문구 */
+export function lineQtyText(item){
+  if (item.unit === 'kg') return item.qty + 'kg';
+  if (item.unit === 'piece') return '낱개 ' + item.qty + '개';
+  return unitName(item.unit) + ' × ' + item.qty;
+}
+
 export function receiveMethodLabel(order){
   if (order.receiveMethod === 'store'){ return '매장수령 · ' + (order.storeName || '미지정'); }
   if (order.receiveMethod === 'delivery'){
@@ -80,8 +95,7 @@ export function phoneDigits(raw){ return String(raw == null ? '' : raw).replace(
 export function orderItemsSummary(order){
   var parts = [];
   order.items.forEach(function(i){
-    var unitLabel = i.unit === 'mal' ? '1말' : '1/2말';
-    parts.push(i.name + ' ' + unitLabel + '×' + i.qty + (i.cut ? (' (' + i.cut + ')') : ''));
+    parts.push(i.name + ' ' + lineQtyText(i) + (i.cut ? (' (' + i.cut + ')') : ''));
   });
   order.ritual.forEach(function(r){ parts.push(r.name + ' ' + r.sets + '세트'); });
   return parts.map(function(t, idx){ return (idx + 1) + '. ' + t; }).join('\n');

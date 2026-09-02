@@ -50,15 +50,37 @@ create table if not exists public.stores (
 create table if not exists public.products (
   id                 integer primary key,
   name               text    not null unique,
-  mal                integer not null default 0,
-  half               integer,
+  mal                integer not null default 0,   -- 1말(10kg) 가격
+  half               integer,                      -- 1/2말(5kg) 가격, 없으면 null
+  kg                 integer not null default 0,   -- 1kg 가격
+  piece_price        integer not null default 0,   -- 낱개(1개) 가격, 0 이면 낱개 주문 불가
   cut_select         boolean not null default false,
   note               text,
   surcharge_eligible boolean not null default false,
   active             boolean not null default true
 );
--- 떡 종류 초기 목록은 js/store.js 의 seedProductsIfEmpty 로 1회 시딩합니다
--- (기본은 비활성/주석. 관리자 설정 → "떡 종류 관리" 에서 직접 추가·수정·삭제).
+
+-- 기존 프로젝트 업그레이드용 (컬럼 추가 + 값 채우기, 재실행 안전)
+alter table public.products add column if not exists kg          integer not null default 0;
+alter table public.products add column if not exists piece_price integer not null default 0;
+update public.products
+  set kg = case when half is not null and half > 0
+                then round(half / 5.0)::int
+                else round(mal / 10.0)::int end
+  where kg = 0;
+update public.products set piece_price = 1000
+  where piece_price = 0
+    and name in ('약식','영양찰떡(호박)','영양찰떡(흑미)','영양찰떡(흰쌀)','밥알쑥찰떡');
+-- 마구설기 4종 분리
+update public.products set name = '마구설기(콩)' where name = '마구설기';
+insert into public.products (id, name, mal, half, kg, piece_price, cut_select, surcharge_eligible, active) values
+  (35, '마구설기(쑥)',   100000, 50000, 10000, 0, true, false, true),
+  (36, '마구설기(호박)', 100000, 50000, 10000, 0, true, false, true),
+  (37, '마구설기(흑미)', 100000, 50000, 10000, 0, true, false, true)
+on conflict (id) do nothing;
+
+-- 떡 종류 전체 목록을 통째로 갈아끼우려면 supabase/products.csv 를
+-- Table Editor → products → Import data via CSV 로 올리세요 (기존 행 삭제 후).
 
 -- ============================================================
 -- RLS (Row Level Security)

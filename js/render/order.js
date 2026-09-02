@@ -5,7 +5,7 @@ import { state } from '../state.js';
 import { RITUAL_ITEMS, CUT_OPTIONS, CONTACT } from '../config.js';
 import {
   esc, fmtWon, val, addDays, todayStr, fmtDateLong,
-  findRitual, shortId, receiveMethodLabel,
+  findRitual, shortId, receiveMethodLabel, lineQtyText,
 } from '../utils.js';
 import { activeProducts, findProduct } from '../catalog.js';
 import { unitPriceOf, collectOrderFromDraft } from '../pricing.js';
@@ -49,7 +49,7 @@ export function renderOrderTab(){
 
   html += '<div class="panel">';
   html += '<h2>떡 담기</h2>';
-  html += '<p class="panel-sub">① 떡 종류 → ② 단위 → ③ 수량 → ④ 쪽수 선택 순서로 골라 담아주세요. (1말 = 10kg, 1/2말 = 5kg)</p>';
+  html += '<p class="panel-sub">① 떡 종류 → ② 단위 → ③ 수량 → ④ 쪽수 선택 순서로 골라 담아주세요. (1말 = 10kg · 1/2말 = 5kg · 1kg · 낱개). 여러 종류를 kg 단위로 나눠 담으면 복합 주문도 가능합니다.</p>';
   html += '<div id="picker-panel">' + renderPickerPanel() + '</div>';
   html += '<div id="cart-list">' + renderCartList() + '</div>';
   html += '</div>';
@@ -119,13 +119,22 @@ export function renderPickerPanel(){
     if (product.half != null){
       html += '<option value="half" ' + (picker.unit === 'half' ? 'selected' : '') + '>1/2말 (5kg) · ' + fmtWon(product.half) + '</option>';
     }
+    if (product.kg > 0){
+      html += '<option value="kg" ' + (picker.unit === 'kg' ? 'selected' : '') + '>1kg · ' + fmtWon(product.kg) + '</option>';
+    }
+    if (product.piecePrice > 0){
+      html += '<option value="piece" ' + (picker.unit === 'piece' ? 'selected' : '') + '>낱개(1개) · ' + fmtWon(product.piecePrice) + '</option>';
+    }
   }
   html += '</select></div>';
 
   var qtyReady = !!(product && picker.unit);
-  html += '<div class="field"><label>③ 수량</label><input id="pick-qty" type="number" min="1" step="1" inputmode="numeric" value="' + (picker.qty || 1) + '" ' + (qtyReady ? '' : 'disabled') + '></div>';
+  var qtyStep = picker.unit === 'kg' ? '0.5' : '1';
+  var qtyMin = picker.unit === 'kg' ? '0.5' : '1';
+  var qtyHint = picker.unit === 'kg' ? ' <span class="muted">(0.5 단위)</span>' : picker.unit === 'piece' ? ' <span class="muted">(개)</span>' : '';
+  html += '<div class="field"><label>③ 수량' + qtyHint + '</label><input id="pick-qty" type="number" min="' + qtyMin + '" step="' + qtyStep + '" inputmode="decimal" value="' + (picker.qty || qtyMin) + '" ' + (qtyReady ? '' : 'disabled') + '></div>';
 
-  var needsCut = !!(product && product.cutSelect);
+  var needsCut = !!(product && product.cutSelect && (picker.unit === 'mal' || picker.unit === 'half'));
   var fixedNote = (product && product.note && !product.cutSelect) ? product.note : '';
   html += '<div class="field"><label>④ 쪽수 선택</label>';
   if (needsCut){
@@ -155,9 +164,8 @@ export function renderCartList(){
   var rows = lines.map(function(line, idx){
     var p = findProduct(line.productId);
     var price = unitPriceOf(p, line.unit);
-    var unitLabel = line.unit === 'mal' ? '1말' : '1/2말';
     return '<div class="cart-line">' +
-      '<div class="cl-main"><strong>' + esc(p.name) + '</strong> · ' + unitLabel + ' × ' + line.qty + (line.cut ? (' · ' + esc(line.cut)) : '') + '</div>' +
+      '<div class="cl-main"><strong>' + esc(p.name) + '</strong> · ' + esc(lineQtyText(line)) + (line.cut ? (' · ' + esc(line.cut)) : '') + '</div>' +
       '<div class="cl-sub">' + fmtWon(price * line.qty) + '</div>' +
       '<button type="button" class="link-btn" data-action="remove-cart-line" data-idx="' + idx + '">삭제</button>' +
     '</div>';
@@ -245,7 +253,7 @@ export function updateGrandTotal(){
 export function refreshPickerAddButton(){
   var picker = state.draft.picker;
   var product = picker.productId ? findProduct(Number(picker.productId)) : null;
-  var needsCut = !!(product && product.cutSelect);
+  var needsCut = !!(product && product.cutSelect && (picker.unit === 'mal' || picker.unit === 'half'));
   var ready = !!(product && picker.unit && (picker.qty > 0) && (!needsCut || picker.cut));
   var btn = document.getElementById('pick-add-btn');
   if (btn) btn.disabled = !ready;

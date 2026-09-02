@@ -50,7 +50,10 @@ export function initEvents(){
       case 'add-cart-line': {
         var picker = state.draft.picker;
         var product = findProduct(Number(picker.productId));
-        state.draft.items.push({ productId:product.id, unit:picker.unit, qty:Math.max(1, picker.qty || 1), cut:picker.cut || '' });
+        var minQ = picker.unit === 'kg' ? 0.5 : 1;
+        var q = Number(picker.qty) > 0 ? Number(picker.qty) : minQ;
+        if (picker.unit === 'piece') q = Math.max(1, Math.round(q));
+        state.draft.items.push({ productId:product.id, unit:picker.unit, qty:q, cut:picker.cut || '' });
         state.draft.picker = { productId:'', unit:'', qty:1, cut:'' };
         document.getElementById('picker-panel').innerHTML = renderPickerPanel();
         document.getElementById('cart-list').innerHTML = renderCartList();
@@ -132,6 +135,8 @@ export function initEvents(){
             name: ep.name,
             mal: String(ep.mal),
             half: ep.half == null ? '' : String(ep.half),
+            kg: ep.kg ? String(ep.kg) : '',
+            piecePrice: ep.piecePrice ? String(ep.piecePrice) : '',
             note: ep.note || '',
             cutSelect: !!ep.cutSelect,
             surchargeEligible: !!ep.surchargeEligible,
@@ -154,7 +159,7 @@ export function initEvents(){
   app.addEventListener('input', function(e){
     var t = e.target;
     if (t.id === 'pick-qty'){
-      var num = parseInt(t.value, 10);
+      var num = parseFloat(t.value);
       state.draft.picker.qty = isNaN(num) ? 0 : Math.max(0, num);
       refreshPickerAddButton();
     } else if (t.matches('input[data-field="rsets"]')){
@@ -201,6 +206,10 @@ export function initEvents(){
       state.admin.settingsForm.prodMal = t.value;
     } else if (t.id === 'set-prod-half'){
       state.admin.settingsForm.prodHalf = t.value;
+    } else if (t.id === 'set-prod-kg'){
+      state.admin.settingsForm.prodKg = t.value;
+    } else if (t.id === 'set-prod-piece'){
+      state.admin.settingsForm.prodPiece = t.value;
     } else if (t.id === 'set-prod-note'){
       state.admin.settingsForm.prodNote = t.value;
     } else if (t.id.indexOf('edit-prod-') === 0 && state.admin.settingsForm.prodEdit){
@@ -209,6 +218,8 @@ export function initEvents(){
       if (ef === 'name') pe.name = t.value;
       else if (ef === 'mal') pe.mal = t.value;
       else if (ef === 'half') pe.half = t.value;
+      else if (ef === 'kg') pe.kg = t.value;
+      else if (ef === 'piece') pe.piecePrice = t.value;
       else if (ef === 'note') pe.note = t.value;
     }
   });
@@ -220,7 +231,8 @@ export function initEvents(){
       document.getElementById('picker-panel').innerHTML = renderPickerPanel();
     } else if (t.id === 'pick-unit'){
       state.draft.picker.unit = t.value;
-      state.draft.picker.qty = state.draft.picker.qty || 1;
+      state.draft.picker.qty = t.value === 'piece' ? 10 : (t.value === 'kg' ? 1 : 1);
+      state.draft.picker.cut = '';
       document.getElementById('picker-panel').innerHTML = renderPickerPanel();
     } else if (t.id === 'pick-cut'){
       state.draft.picker.cut = t.value;

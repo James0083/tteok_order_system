@@ -5,6 +5,24 @@ import { state } from '../state.js';
 import { CONTACT } from '../config.js';
 import { esc, fmtWon, formatMal, fmtDateLong, shortId, receiveMethodLabel, orderItemsSummary } from '../utils.js';
 import { findProduct } from '../catalog.js';
+import { unitToMal } from '../pricing.js';
+
+/* 주문들의 총 생산 중량(kg) + 낱개 개수 텍스트 */
+export function weightSummary(orders){
+  var kg = 0, pieces = 0;
+  orders.forEach(function(o){
+    o.items.forEach(function(i){
+      if (i.unit === 'piece'){ pieces += i.qty; }
+      else { kg += i.qty * unitToMal(i.unit) * 10; }
+    });
+  });
+  return { kg: Math.round(kg * 10) / 10, pieces: pieces };
+}
+
+export function weightText(orders){
+  var w = weightSummary(orders);
+  return w.kg.toLocaleString('ko-KR') + 'kg' + (w.pieces ? ' + 낱개 ' + w.pieces + '개' : '');
+}
 
 /* 연락처 검색 결과 등에서 쓰는 주문 카드 (직원용) */
 export function renderOrderCard(order){
@@ -47,10 +65,10 @@ export function renderProductionSummary(orders){
     o.items.forEach(function(i){
       if (!totals[i.productId]){
         var p = findProduct(i.productId);
-        totals[i.productId] = { name: (p && p.name) || i.name || ('#' + i.productId), malEq:0, cuts:{} };
+        totals[i.productId] = { name: (p && p.name) || i.name || ('#' + i.productId), malEq:0, pieces:0, cuts:{} };
       }
-      var eq = i.unit === 'mal' ? i.qty : i.qty * 0.5;
-      totals[i.productId].malEq += eq;
+      totals[i.productId].malEq += i.qty * unitToMal(i.unit);
+      if (i.unit === 'piece'){ totals[i.productId].pieces += i.qty; }
       if (i.cut){ totals[i.productId].cuts[i.cut] = (totals[i.productId].cuts[i.cut] || 0) + 1; }
     });
   });
@@ -58,9 +76,12 @@ export function renderProductionSummary(orders){
     .sort(function(a, b){ return a.name.localeCompare(b.name, 'ko'); });
   var rows = summaryItems.map(function(t, idx){
     var kg = Math.round(t.malEq * 10 * 10) / 10;
+    var qtyParts = [];
+    if (kg > 0){ qtyParts.push(kg + 'kg (' + formatMal(t.malEq) + ')'); }
+    if (t.pieces > 0){ qtyParts.push('낱개 ' + t.pieces + '개'); }
     var cutNote = Object.keys(t.cuts).length ? Object.keys(t.cuts).map(function(k){ return k + ' x' + t.cuts[k]; }).join(', ') : '';
     return '<tr><td class="num">' + (idx + 1) + '</td><td>' + esc(t.name) + (cutNote ? ('<br><small class="muted">' + esc(cutNote) + '</small>') : '') + '</td>' +
-      '<td class="num tabular">' + kg + 'kg (' + formatMal(t.malEq) + ')</td></tr>';
+      '<td class="num tabular">' + (qtyParts.join(' + ') || '-') + '</td></tr>';
   }).join('');
 
   var out = '';

@@ -40,9 +40,9 @@ export const state = {
     searchResults:[],
     settingsForm:{
       newStoreName:'', newStoreAddr:'', storeMsg:'', storeMsgType:'',
-      prodName:'', prodMal:'', prodHalf:'', prodCut:false, prodNote:'', prodSurcharge:false,
+      prodName:'', prodMal:'', prodHalf:'', prodKg:'', prodPiece:'', prodCut:false, prodNote:'', prodSurcharge:false,
       prodMsg:'', prodMsgType:'', prodDeleteId:null,
-      prodEdit:null,   // 수정 중인 떡: { id, name, mal, half, cutSelect, note, surchargeEligible }
+      prodEdit:null,   // 수정 중인 떡: { id, name, mal, half, kg, piecePrice, cutSelect, note, surchargeEligible }
     },
   },
   monitor: { date: todayStr() },

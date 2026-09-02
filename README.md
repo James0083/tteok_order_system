@@ -34,10 +34,16 @@ js/
     shared.js          탭 공용 조각 (생산분 요약, 주문표, 주문카드, 통계)
 supabase/
   schema.sql          테이블(orders/stores/products) + RLS 정책
+  products.csv        떡 종류 전체 목록 (Supabase Table Editor 에서 CSV import 용)
 ```
 
-> 떡 종류는 `products` 테이블에서 관리하며, 처음 실행 시 `DEFAULT_PRODUCTS` 로 자동 시딩됩니다.
-> 이후 관리자 설정 → "떡 종류 관리" 에서 추가/삭제할 수 있습니다.
+> 떡 종류는 `products` 테이블에서 관리합니다. 관리자 설정 → "떡 종류 관리" 에서
+> 이름·가격(1말/½말/**1kg**/**개당**)·쪽수선택·추가요금 여부를 추가·수정·삭제할 수 있습니다.
+> 목록을 통째로 갈아끼우려면 `supabase/products.csv` 를 Table Editor 로 import 하세요.
+>
+> **주문 단위**: 1말(10kg) · 1/2말(5kg) · 1kg · 낱개(개당). `1kg 가격`은 비워두면
+> `1/2말가÷5`(없으면 `1말가÷10`)로 자동 계산됩니다. `개당 가격`이 0이면 낱개 주문 불가.
+> 여러 종류를 kg 단위로 나눠 담으면 "약식 1.5kg + 쑥개떡 1.5kg" 같은 복합 주문이 됩니다.
 
 ## 설정 순서
 

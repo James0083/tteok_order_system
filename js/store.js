@@ -157,6 +157,8 @@ function rowToProduct(r){
     name: r.name,
     mal: r.mal || 0,
     half: r.half == null ? null : r.half,
+    kg: r.kg || 0,
+    piecePrice: r.piece_price || 0,
     cutSelect: !!r.cut_select,
     note: r.note || '',
     surchargeEligible: !!r.surcharge_eligible,
@@ -170,6 +172,8 @@ function productToRow(p){
     name: p.name,
     mal: p.mal || 0,
     half: p.half == null ? null : p.half,
+    kg: p.kg || 0,
+    piece_price: p.piecePrice || 0,
     cut_select: !!p.cutSelect,
     note: p.note || null,
     surcharge_eligible: !!p.surchargeEligible,
@@ -215,8 +219,8 @@ export async function insertProduct(p){
 export async function updateProduct(id, patch){
   if (!supabase) return false;
   const map = {
-    name:'name', mal:'mal', half:'half', cutSelect:'cut_select',
-    note:'note', surchargeEligible:'surcharge_eligible', active:'active',
+    name:'name', mal:'mal', half:'half', kg:'kg', piecePrice:'piece_price',
+    cutSelect:'cut_select', note:'note', surchargeEligible:'surcharge_eligible', active:'active',
   };
   const row = {};
   Object.keys(patch).forEach(function(k){ if (map[k]) row[map[k]] = patch[k]; });

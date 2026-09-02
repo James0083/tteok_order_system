@@ -6,7 +6,29 @@ import { findRitual } from './utils.js';
 import { findProduct } from './catalog.js';
 import { state } from './state.js';
 
-export function unitPriceOf(product, unit){ return unit === 'mal' ? product.mal : product.half; }
+export function unitPriceOf(product, unit){
+  if (!product) return 0;
+  if (unit === 'mal') return product.mal || 0;
+  if (unit === 'half') return product.half || 0;
+  if (unit === 'kg') return product.kg || 0;
+  if (unit === 'piece') return product.piecePrice || 0;
+  return 0;
+}
+
+/* half 있으면 half/5, 없으면 mal/10 */
+export function computeKgPrice(mal, half){
+  if (half != null && half > 0) return Math.round(half / 5);
+  if (mal != null && mal > 0) return Math.round(mal / 10);
+  return 0;
+}
+
+/* 주문 단위 → 말(10kg) 환산 계수. 낱개는 0 (중량 무시). */
+export function unitToMal(unit){
+  if (unit === 'mal') return 1;
+  if (unit === 'half') return 0.5;
+  if (unit === 'kg') return 0.1;
+  return 0;
+}
 
 export function computeSurcharge(items){
   if (!items.length) return { applies:false, units:0, amount:0 };
@@ -15,7 +37,8 @@ export function computeSurcharge(items){
     return !!(p && p.surchargeEligible);
   });
   if (!allEligible) return { applies:false, units:0, amount:0 };
-  var units = items.reduce(function(s, i){ return s + (i.unit === 'mal' ? i.qty : i.qty * 0.5); }, 0);
+  var units = items.reduce(function(s, i){ return s + i.qty * unitToMal(i.unit); }, 0);
+  if (units <= 0) return { applies:false, units:0, amount:0 };
   return { applies:true, units:units, amount: Math.round(units * SURCHARGE_PER_MAL) };
 }
 
