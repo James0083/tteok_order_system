@@ -2,7 +2,7 @@
    직원 로그인 / 관리자 / 매장 / 떡 종류 액션
    ============================================================ */
 import { state } from './state.js';
-import { val, genId } from './utils.js';
+import { val } from './utils.js';
 import { nextProductId } from './catalog.js';
 import { computeKgPrice } from './pricing.js';
 import { signIn, signOut } from './auth.js';
@@ -62,7 +62,7 @@ export async function addStore(){
   var addr = val('#set-store-addr').trim();
   if (!name){ sf.storeMsg = '매장명을 입력해주세요.'; sf.storeMsgType = 'error'; render(); return; }
   if (state.stores.some(function(s){ return s.name === name; })){ sf.storeMsg = '이미 등록된 매장명입니다.'; sf.storeMsgType = 'error'; render(); return; }
-  var ok = await insertStore({ id: genId('ST'), name:name, address:addr });
+  var ok = await insertStore({ name:name, address:addr });
   if (!ok){ sf.storeMsg = '저장에 실패했습니다. (백엔드 연결 확인)'; sf.storeMsgType = 'error'; render(); return; }
   await refreshStores();
   sf.newStoreName = ''; sf.newStoreAddr = '';

@@ -41,6 +41,7 @@ export function renderOrderTab(){
   html += '<div class="field" style="margin-top:12px;"><label class="req">수령 방법</label>';
   html += '<div class="method-choice">';
   html += '<button type="button" class="method-btn ' + (f.receiveMethod === 'store' ? 'active' : '') + '" data-action="pick-receive" data-method="store">매장 수령</button>';
+  html += '<button type="button" class="method-btn ' + (f.receiveMethod === 'factory' ? 'active' : '') + '" data-action="pick-receive" data-method="factory">공장 수령</button>';
   html += '<button type="button" class="method-btn ' + (f.receiveMethod === 'delivery' ? 'active' : '') + '" data-action="pick-receive" data-method="delivery">집으로 배송</button>';
   html += '</div>';
   html += '<div id="receive-detail">' + renderReceiveDetail() + '</div>';
@@ -93,6 +94,9 @@ export function renderReceiveDetail(){
   if (f.receiveMethod === 'delivery'){
     return '<div class="field" style="margin-top:8px;"><label class="req">배송 받으실 주소</label>' +
       '<textarea id="f-address" placeholder="도로명 주소와 상세주소를 입력해주세요">' + esc(f.address) + '</textarea></div>';
+  }
+  if (f.receiveMethod === 'factory'){
+    return '<div class="notice notice-info" style="margin-top:8px;">공장에서 직접 수령하시는 방법입니다. 수령 시간은 요청사항에 적어주시면 확인 후 연락드립니다.</div>';
   }
   return '';
 }

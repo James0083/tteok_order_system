@@ -136,9 +136,10 @@ export async function refreshStores(){
 
 export async function insertStore(store){
   if (!supabase) return false;
+  // id 는 stores 테이블 default 로 자동 생성됩니다.
   const { error } = await supabase
     .from('stores')
-    .insert({ id: store.id, name: store.name, address: store.address || null });
+    .insert({ name: store.name, address: store.address || null });
   if (error){ console.error('insertStore', error); return false; }
   return true;
 }

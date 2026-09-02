@@ -64,6 +64,7 @@ export function lineQtyText(item){
 
 export function receiveMethodLabel(order){
   if (order.receiveMethod === 'store'){ return '매장수령 · ' + (order.storeName || '미지정'); }
+  if (order.receiveMethod === 'factory'){ return '공장수령'; }
   if (order.receiveMethod === 'delivery'){
     var addr = order.address || '';
     return '배송 · ' + (addr.length > 22 ? addr.slice(0, 22) + '…' : addr);

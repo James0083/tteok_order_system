@@ -40,11 +40,14 @@ alter table public.orders add column if not exists in_store boolean not null def
 drop table if exists public.config;
 
 -- ---------- 매장 ----------
+-- id 는 앱( genId('ST') )처럼 자동 생성됩니다. CSV/시드에는 name, address 만 넣으면 됩니다.
 create table if not exists public.stores (
-  id      text primary key,
+  id      text primary key default ('ST' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12))),
   name    text not null unique,
   address text
 );
+-- 기존 프로젝트 업그레이드용
+alter table public.stores alter column id set default ('ST' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12)));
 
 -- ---------- 떡 종류 ----------
 create table if not exists public.products (

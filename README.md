@@ -35,6 +35,8 @@ js/
 supabase/
   schema.sql          테이블(orders/stores/products) + RLS 정책
   products.csv        떡 종류 전체 목록 (Supabase Table Editor 에서 CSV import 용)
+  stores.csv          매장 목록 (CSV import 용)
+  stores_seed.sql     매장 목록 (SQL Editor 로 넣는 대안)
 ```
 
 > 떡 종류는 `products` 테이블에서 관리합니다. 관리자 설정 → "떡 종류 관리" 에서

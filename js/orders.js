@@ -24,7 +24,7 @@ export function buildOrderPayload(){
   if (inStore && phone && phoneDigits(phone).length < 9){ return { error:'연락처를 입력하셨다면 정확히 입력하거나 비워주세요.' }; }
   if (!deliveryDate){ return { error:'수령(배송) 희망일을 선택해주세요.' }; }
   if (deliveryDate < addDays(todayStr(), 1)){ return { error:'수령 희망일은 내일 이후로 선택해주세요.' }; }
-  if (!receiveMethod){ return { error:'수령 방법(매장 수령/집으로 배송)을 선택해주세요.' }; }
+  if (!receiveMethod){ return { error:'수령 방법(매장 수령/공장 수령/집으로 배송)을 선택해주세요.' }; }
   if (receiveMethod === 'store'){
     var storeOk = state.stores.some(function(s){ return s.name === storeName; });
     if (!storeName || !storeOk){ return { error:'목록에 있는 매장을 검색해 선택해주세요.' }; }
