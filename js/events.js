@@ -6,6 +6,7 @@ import { addDays, todayStr, formatPhone } from './utils.js';
 import { findProduct } from './catalog.js';
 import { refreshOrders } from './store.js';
 import { render } from './render/index.js';
+import { printProductionSheets } from './render/print.js';
 import {
   renderReceiveDetail, renderPickerPanel, renderCartList,
   updateGrandTotal, updateRitualSub, refreshPickerAddButton, renderDateNotice,
@@ -114,7 +115,14 @@ export function initEvents(){
       case 'admin-date-next': { state.admin.date = addDays(state.admin.date, 1); render(); break; }
       case 'admin-date-today': { state.admin.date = addDays(todayStr(), 1); render(); break; }
       case 'admin-refresh': { refreshOrders().then(function(){ state.admin.banner = ''; render(); }); break; }
-      case 'admin-print': { window.print(); break; }
+      case 'admin-print': {
+        printProductionSheets({
+          date: state.admin.date,
+          orders: state.orders.filter(function(o){ return o.deliveryDate === state.admin.date; }),
+          mode: 'admin',
+        });
+        break;
+      }
       case 'admin-open-settings': { state.admin.view = 'settings'; render(); break; }
       case 'admin-back-dashboard': { state.admin.view = 'dashboard'; render(); break; }
       case 'admin-delete': { state.admin.deleteConfirmId = id; render(); break; }
@@ -152,7 +160,14 @@ export function initEvents(){
       case 'monitor-date-next': { state.monitor.date = addDays(state.monitor.date, 1); render(); break; }
       case 'monitor-date-today': { state.monitor.date = todayStr(); render(); break; }
       case 'monitor-refresh': { refreshOrders().then(render); break; }
-      case 'monitor-print': { window.print(); break; }
+      case 'monitor-print': {
+        printProductionSheets({
+          date: state.monitor.date,
+          orders: state.orders.filter(function(o){ return o.deliveryDate === state.monitor.date; }),
+          mode: 'monitor',
+        });
+        break;
+      }
     }
   });
 

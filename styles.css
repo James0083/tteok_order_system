@@ -177,6 +177,8 @@ table.dtab td.num, table.dtab th.num{text-align:right; width:20px; white-space:n
 footer.contact-foot{max-width:820px; margin:0 auto; padding:0 16px 30px; font-size:12px; color:var(--ink-soft); text-align:center;}
 
 /* ---------- print ---------- */
+#print-doc{display:none;}
+
 @media print{
   .no-print{display:none !important;}
   body{background:#fff;}
@@ -184,4 +186,48 @@ footer.contact-foot{max-width:820px; margin:0 auto; padding:0 16px 30px; font-si
   .panel{border:1px solid #999; box-shadow:none;}
   table.dtab{min-width:0;}
   table.dtab th{background:#eee !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+}
+
+/* ---------- print : 생산분 요약 / 주문 목록 전용 인쇄물 ---------- */
+@media print{
+  @page{ margin:14mm; }
+
+  body.print-sheets{ background:#fff; }
+  body.print-sheets #app{ display:none !important; }
+  body.print-sheets #print-doc{
+    display:block;
+    color:#000;
+    font-family:'Noto Sans KR', sans-serif;
+    font-size:14pt;
+    line-height:1.5;
+  }
+
+  #print-doc .print-page{ page-break-after:always; }
+  #print-doc .print-page:last-child{ page-break-after:auto; }
+
+  #print-doc .p-date{ font-size:17pt; font-weight:700; }
+  #print-doc .p-sub{ font-size:14pt; font-weight:700; margin:2px 0 14px; }
+  #print-doc .p-h3{ font-size:14pt; font-weight:700; margin:18px 0 6px; }
+  #print-doc .p-empty{ margin-top:20px; }
+  #print-doc .p-note{ margin-top:12px; font-weight:700; }
+
+  #print-doc table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:4px;
+  }
+  #print-doc th, #print-doc td{
+    border:1px solid #000;
+    padding:6px 8px;
+    text-align:left;
+    vertical-align:top;
+  }
+  #print-doc th{
+    background:#eee !important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+  #print-doc td.num, #print-doc th.num{ text-align:right; white-space:nowrap; width:1%; }
+  #print-doc .p-items{ white-space:pre-line; }
+  #print-doc tr, #print-doc td, #print-doc th{ page-break-inside:avoid; }
 }

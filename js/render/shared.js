@@ -58,8 +58,8 @@ export function statCard(label, value){
   return '<div class="stat-card"><div class="slbl">' + esc(label) + '</div><div class="sval tabular">' + value + '</div></div>';
 }
 
-/* ---------- 생산분 요약 (말/1·2말을 합산 표기, 금액 없음) ---------- */
-export function renderProductionSummary(orders){
+/* ---------- 생산분 집계 (렌더와 인쇄가 함께 사용) ---------- */
+export function aggregateProduction(orders){
   var totals = {};
   orders.forEach(function(o){
     o.items.forEach(function(i){
@@ -72,8 +72,41 @@ export function renderProductionSummary(orders){
       if (i.cut){ totals[i.productId].cuts[i.cut] = (totals[i.productId].cuts[i.cut] || 0) + 1; }
     });
   });
-  var summaryItems = Object.keys(totals).map(function(k){ return totals[k]; })
+  var items = Object.keys(totals).map(function(k){ return totals[k]; })
     .sort(function(a, b){ return a.name.localeCompare(b.name, 'ko'); });
+
+  var ritualTotals = {};
+  orders.forEach(function(o){
+    o.ritual.forEach(function(r){
+      if (!ritualTotals[r.id]) ritualTotals[r.id] = { sets:0, name:r.name };
+      ritualTotals[r.id].sets += r.sets;
+    });
+  });
+  var rituals = Object.keys(ritualTotals).map(function(k){ return ritualTotals[k]; });
+
+  var surchargeCount = orders.filter(function(o){ return o.surchargeApplies; }).length;
+  return { items: items, rituals: rituals, surchargeCount: surchargeCount };
+}
+
+/* 집계 품목 1건의 "수량 (중량)" 문구 */
+export function productionQtyText(t){
+  var kg = Math.round(t.malEq * 10 * 10) / 10;
+  var parts = [];
+  if (kg > 0){ parts.push(kg + 'kg (' + formatMal(t.malEq) + ')'); }
+  if (t.pieces > 0){ parts.push('낱개 ' + t.pieces + '개'); }
+  return parts.join(' + ') || '-';
+}
+
+export function productionCutNote(t){
+  return Object.keys(t.cuts).length
+    ? Object.keys(t.cuts).map(function(k){ return k + ' x' + t.cuts[k]; }).join(', ')
+    : '';
+}
+
+/* ---------- 생산분 요약 (말/1·2말을 합산 표기, 금액 없음) ---------- */
+export function renderProductionSummary(orders){
+  var agg = aggregateProduction(orders);
+  var summaryItems = agg.items;
   var rows = summaryItems.map(function(t, idx){
     var kg = Math.round(t.malEq * 10 * 10) / 10;
     var qtyParts = [];
@@ -93,25 +126,16 @@ export function renderProductionSummary(orders){
     out += '<tbody>' + rows + '</tbody></table></div>';
   }
 
-  var ritualTotals = {};
-  orders.forEach(function(o){
-    o.ritual.forEach(function(r){
-      if (!ritualTotals[r.id]) ritualTotals[r.id] = { sets:0, name:r.name };
-      ritualTotals[r.id].sets += r.sets;
-    });
-  });
-  var ritualKeys = Object.keys(ritualTotals);
-  if (ritualKeys.length){
+  if (agg.rituals.length){
     var ritualStart = summaryItems.length;
-    var rRows = ritualKeys.map(function(k, idx){
-      var t = ritualTotals[k];
+    var rRows = agg.rituals.map(function(t, idx){
       return '<tr><td class="num">' + (ritualStart + idx + 1) + '</td><td>' + esc(t.name) + '</td><td class="num tabular">' + t.sets + '세트</td><td class="num tabular">' + (t.sets * 3) + '쪽</td></tr>';
     }).join('');
     out += '<h3 style="font-size:13.5px; margin:14px 0 6px;">제사용 편</h3>';
     out += '<div class="table-scroll fit"><table class="dtab dtab-auto"><thead><tr><th class="num">No</th><th>품목</th><th class="num">세트</th><th class="num">쪽수</th></tr></thead><tbody>' + rRows + '</tbody></table></div>';
   }
 
-  var surchargeCount = orders.filter(function(o){ return o.surchargeApplies; }).length;
+  var surchargeCount = agg.surchargeCount;
   if (surchargeCount > 0){
     out += '<div class="notice notice-warn" style="margin-top:10px;">절편·바람떡·쑥개떡 단독 추가요금 적용 주문 ' + surchargeCount + '건 포함</div>';
   }
