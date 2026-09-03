@@ -1,11 +1,10 @@
 /* ============================================================
    렌더 : 인쇄 전용 문서 (생산분 요약 / 주문 목록을 각각 별도 페이지로)
    ------------------------------------------------------------
-   화면 캡처 대신 목록 형태의 인쇄물을 만든다.
+   화면 캡처 대신 표 형태의 인쇄물을 만든다.
    본문 14pt, 상단 날짜 제목 17pt ('_월_일(요일)' 형식).
-   품목은 품목별 한 줄, 주문은 주문건별 한 줄로 출력한다.
    ============================================================ */
-import { esc, fmtWon, shortId, receiveMethodLabel, lineQtyText } from '../../core/utils.js';
+import { esc, fmtWon, receiveMethodLabel, lineQtyText } from '../../core/utils.js';
 import { aggregateProduction, productionQtyText, productionCutNote } from './aggregate.js';
 
 /* '2026-09-03' -> '9월 3일(수)' */
@@ -21,18 +20,14 @@ function pageHead(dateStr, sub){
     '<div class="p-sub">' + esc(sub) + '</div>';
 }
 
-function line(no, text){
-  return '<div class="p-line"><span class="p-no">' + no + '.</span> ' + text + '</div>';
-}
-
-/* 주문 1건의 품목/제사 편을 한 줄 문자열로 */
-function orderItemsInline(o){
+/* 주문 1건의 품목/제사 편을 셀 내용으로 (줄바꿈 구분) */
+function orderItemsCell(o){
   var parts = [];
   o.items.forEach(function(i){
     parts.push(esc(i.name + ' ' + lineQtyText(i) + (i.cut ? (' (' + i.cut + ')') : '')));
   });
   o.ritual.forEach(function(r){ parts.push(esc(r.name + ' ' + r.sets + '세트')); });
-  return parts.join(' / ');
+  return parts.join('<br>');
 }
 
 /* ---------- 1페이지 : 생산분 요약 ---------- */
@@ -46,18 +41,25 @@ function summaryPage(dateStr, activeOrders){
     return html;
   }
 
-  agg.items.forEach(function(t, i){
-    var note = productionCutNote(t);
-    html += line(i + 1, '<strong>' + esc(t.name) + '</strong> — ' + esc(productionQtyText(t)) +
-      (note ? ('  [' + esc(note) + ']') : ''));
-  });
+  if (agg.items.length){
+    html += '<table><thead><tr><th class="p-c1">No</th><th>품목</th><th>수량 (중량)</th><th>비고</th></tr></thead><tbody>';
+    html += agg.items.map(function(t, i){
+      return '<tr><td class="p-c1">' + (i + 1) + '</td><td>' + esc(t.name) + '</td>' +
+        '<td>' + esc(productionQtyText(t)) + '</td>' +
+        '<td>' + esc(productionCutNote(t)) + '</td></tr>';
+    }).join('');
+    html += '</tbody></table>';
+  }
 
   if (agg.rituals.length){
-    html += '<h3 class="p-h3">제사용 편</h3>';
     var start = agg.items.length;
-    agg.rituals.forEach(function(t, i){
-      html += line(start + i + 1, '<strong>' + esc(t.name) + '</strong> — ' + t.sets + '세트 (' + (t.sets * 3) + '쪽)');
-    });
+    html += '<h3 class="p-h3">제사용 편</h3>';
+    html += '<table><thead><tr><th class="p-c1">No</th><th>품목</th><th>세트</th><th>쪽수</th></tr></thead><tbody>';
+    html += agg.rituals.map(function(t, i){
+      return '<tr><td class="p-c1">' + (start + i + 1) + '</td><td>' + esc(t.name) + '</td>' +
+        '<td>' + t.sets + '세트</td><td>' + (t.sets * 3) + '쪽</td></tr>';
+    }).join('');
+    html += '</tbody></table>';
   }
 
   html += '</section>';
@@ -74,20 +76,20 @@ function ordersPage(dateStr, orders, showAmount){
     return html;
   }
 
-  orders.forEach(function(o, i){
-    var head = [
-      '#' + esc(shortId(o.id)),
-      esc(o.phone || '연락처 없음'),
-      esc(receiveMethodLabel(o)) + (o.inStore ? ' · 매장접수' : ''),
-    ];
-    if (showAmount){ head.push(esc(fmtWon(o.total))); }
-    var body = '<span class="p-head">' + head.join(' · ') + '</span>' +
-      '<span class="p-detail"> — ' + orderItemsInline(o) + '</span>' +
-      (o.memo ? ('<span class="p-memo"> · 메모: ' + esc(o.memo) + '</span>') : '');
-    html += line(i + 1, body);
-  });
-
-  html += '</section>';
+  html += '<table><thead><tr><th class="p-c1">No</th><th>연락처</th><th>수령 방법</th><th>주문 내역</th>' +
+    (showAmount ? '<th>금액</th>' : '') + '</tr></thead><tbody>';
+  html += orders.map(function(o, i){
+    var detail = orderItemsCell(o);
+    if (o.memo){ detail += '<br><span class="p-memo">메모: ' + esc(o.memo) + '</span>'; }
+    return '<tr>' +
+      '<td class="p-c1">' + (i + 1) + '</td>' +
+      '<td>' + esc(o.phone || '연락처 없음') + (o.inStore ? '<br>매장접수' : '') + '</td>' +
+      '<td>' + esc(receiveMethodLabel(o)) + '</td>' +
+      '<td>' + detail + '</td>' +
+      (showAmount ? '<td>' + esc(fmtWon(o.total)) + '</td>' : '') +
+    '</tr>';
+  }).join('');
+  html += '</tbody></table></section>';
   return html;
 }
 
