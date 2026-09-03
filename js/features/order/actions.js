@@ -1,11 +1,11 @@
 /* ============================================================
    주문 관련 액션 (제출 / 조회 / 수정 / 취소)
    ============================================================ */
-import { state, makeEmptyDraft, resetFormFields } from './state.js';
-import { val, genId, addDays, todayStr, formatPhone, phoneDigits } from './utils.js';
+import { state, makeEmptyDraft, resetFormFields } from '../../core/state.js';
+import { val, genId, addDays, todayStr, formatPhone, phoneDigits } from '../../core/utils.js';
 import { collectOrderFromDraft } from './pricing.js';
-import { loadOrders, insertOrder, updateOrder, refreshOrders } from './store.js';
-import { render } from './render/index.js';
+import { loadOrders, insertOrder, updateOrder, refreshOrders } from './data.js';
+import { render } from '../../core/app.js';
 
 /* ---------- 입력값 → 저장 payload ---------- */
 export function buildOrderPayload(){

@@ -1,13 +1,61 @@
 /* ============================================================
-   렌더 : 관리자 탭 (대시보드 / 설정) — 직원 로그인 필요 (render/index.js 게이트)
+   렌더 : 관리자 탭 (대시보드 / 설정) — 직원 로그인 필요 (core/app.js 게이트)
    ============================================================ */
-import { state } from '../state.js';
-import { esc, fmtWon, fmtDateLong } from '../utils.js';
-import { statCard, renderProductionSummary, renderOrderStatusTable, renderTrend, renderOrderCard, weightText } from './shared.js';
-import { renderStaffBar } from './auth.js';
-import { computeKgPrice } from '../pricing.js';
+import { state } from '../../core/state.js';
+import { esc, fmtWon, fmtDateLong, shortId, receiveMethodLabel, orderItemsSummary } from '../../core/utils.js';
+import { statCard, renderProductionSummary, renderOrderStatusTable } from '../production/view.js';
+import { weightText } from '../production/aggregate.js';
+import { renderStaffBar } from '../auth/view.js';
+import { computeKgPrice } from '../order/pricing.js';
 
 function digits(v){ return String(v == null ? '' : v).replace(/[^0-9]/g, ''); }
+
+/* 연락처 검색 결과에서 쓰는 주문 카드 (직원용) */
+export function renderOrderCard(order){
+  var actions = '';
+  if (order.status !== '취소'){
+    actions =
+      '<button class="btn btn-outline btn-sm" data-action="edit-order" data-id="' + order.id + '" data-return="admin">수정</button>' +
+      '<button class="btn btn-danger btn-sm" data-action="cancel-my-order" data-id="' + order.id + '">취소 처리</button>';
+  }
+  return (
+    '<div class="order-card">' +
+      '<div class="order-card-top">' +
+        '<div><div class="odate">' + esc(fmtDateLong(order.deliveryDate)) + '</div>' +
+          '<div class="oid">#' + esc(shortId(order.id)) + ' · ' + esc(order.phone || '연락처 없음') + ' · ' + esc(receiveMethodLabel(order)) + (order.inStore ? ' · 매장접수' : '') + '</div></div>' +
+        '<span class="badge badge-' + order.status + '">' + order.status + '</span>' +
+      '</div>' +
+      '<div class="order-items-sum">' + esc(orderItemsSummary(order)) + '</div>' +
+      (order.memo ? ('<div class="muted" style="font-size:12px; margin-bottom:8px;">메모: ' + esc(order.memo) + '</div>') : '') +
+      '<div class="order-card-bottom">' +
+        '<div class="order-amt">' + fmtWon(order.total) + '</div>' +
+        '<div class="card-actions">' + actions + '</div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+export function renderTrend(){
+  var byDate = {};
+  state.orders.forEach(function(o){
+    if (o.status === '취소') return;
+    if (!byDate[o.deliveryDate]) byDate[o.deliveryDate] = { count:0, revenue:0 };
+    byDate[o.deliveryDate].count++;
+    byDate[o.deliveryDate].revenue += o.total;
+  });
+  var dates = Object.keys(byDate).sort().reverse().slice(0, 14);
+  if (!dates.length){ return '<div class="empty-state">아직 통계를 표시할 주문 데이터가 없습니다.</div>'; }
+  var max = Math.max.apply(null, dates.map(function(d){ return byDate[d].revenue; }));
+  return dates.map(function(d){
+    var t = byDate[d];
+    var pct = max > 0 ? Math.round(t.revenue / max * 100) : 0;
+    return '<div class="trend-row">' +
+      '<div class="trend-date">' + d + '</div>' +
+      '<div class="trend-bar-track"><div class="trend-bar-fill" style="width:' + pct + '%;"></div></div>' +
+      '<div class="trend-val tabular">' + t.count + '건 · ' + fmtWon(t.revenue) + '</div>' +
+    '</div>';
+  }).join('');
+}
 
 function renderSearchBar(){
   var a = state.admin;

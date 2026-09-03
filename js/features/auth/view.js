@@ -1,8 +1,8 @@
 /* ============================================================
    렌더 : 직원 로그인 화면 / 로그인 상태 표시줄
    ============================================================ */
-import { state } from '../state.js';
-import { esc } from '../utils.js';
+import { state } from '../../core/state.js';
+import { esc } from '../../core/utils.js';
 
 export function renderStaffLogin(){
   var a = state.auth;

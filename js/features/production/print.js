@@ -5,8 +5,8 @@
    본문 14pt, 상단 날짜 제목 17pt ('_월_일(요일)' 형식).
    품목은 품목별 한 줄, 주문은 주문건별 한 줄로 출력한다.
    ============================================================ */
-import { esc, fmtWon, shortId, receiveMethodLabel, lineQtyText } from '../utils.js';
-import { aggregateProduction, productionQtyText, productionCutNote } from './shared.js';
+import { esc, fmtWon, shortId, receiveMethodLabel, lineQtyText } from '../../core/utils.js';
+import { aggregateProduction, productionQtyText, productionCutNote } from './aggregate.js';
 
 /* '2026-09-03' -> '9월 3일(수)' */
 function printDateTitle(dateStr){

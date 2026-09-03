@@ -1,10 +1,11 @@
 /* ============================================================
-   렌더 : 모니터링 탭 (직원 로그인 필요 — render/index.js 에서 게이트)
+   렌더 : 모니터링 탭 (직원 로그인 필요 — core/app.js 에서 게이트)
    ============================================================ */
-import { state } from '../state.js';
-import { esc, todayStr, fmtDateLong } from '../utils.js';
-import { statCard, renderProductionSummary, renderOrderStatusTable, weightText } from './shared.js';
-import { renderStaffBar } from './auth.js';
+import { state } from '../../core/state.js';
+import { esc, todayStr, fmtDateLong } from '../../core/utils.js';
+import { statCard, renderProductionSummary, renderOrderStatusTable } from '../production/view.js';
+import { weightText } from '../production/aggregate.js';
+import { renderStaffBar } from '../auth/view.js';
 
 export function renderMonitorTab(){
   var d = state.monitor.date;

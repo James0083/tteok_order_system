@@ -1,15 +1,19 @@
 /* ============================================================
    렌더 : 주문 탭 + 주문 탭 렌더 후처리
    ============================================================ */
-import { state } from '../state.js';
-import { RITUAL_ITEMS, CUT_OPTIONS, CONTACT } from '../config.js';
+import { state } from '../../core/state.js';
+import { RITUAL_ITEMS, CUT_OPTIONS, CONTACT } from '../../core/config.js';
 import {
   esc, fmtWon, val, addDays, todayStr, fmtDateLong,
   findRitual, shortId, receiveMethodLabel, lineQtyText,
-} from '../utils.js';
-import { activeProducts, findProduct } from '../catalog.js';
-import { unitPriceOf, collectOrderFromDraft } from '../pricing.js';
-import { renderContactFooter } from './shared.js';
+} from '../../core/utils.js';
+import { activeProducts, findProduct } from './catalog.js';
+import { unitPriceOf, collectOrderFromDraft } from './pricing.js';
+
+export function renderContactFooter(){
+  return '<footer class="contact-foot no-print">주문 관련 문의는 3일 전 미리 연락 부탁드립니다.<br>' +
+    '전화/문자 (' + CONTACT.hours + ') ' + CONTACT.phone1 + ', ' + CONTACT.phone2 + '</footer>';
+}
 
 export function renderOrderTab(){
   if (state.confirmation){ return renderConfirmation(); }

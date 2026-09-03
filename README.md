@@ -10,28 +10,41 @@
 index.html            진입 HTML (마크업 + CSS/JS 링크만)
 styles.css            전체 스타일
 js/
-  config.js           기본 상수·시딩용 상품 데이터 (DEFAULT_PRODUCTS, RITUAL_ITEMS)
-  catalog.js          떡 종류 런타임 조회 헬퍼 (products 테이블 기반, 가나다 정렬)
-  utils.js            포맷·escape·전화번호 포맷 등 공용 유틸
-  state.js            전역 상태 객체 + 초기화 헬퍼
-  pricing.js          가격/추가요금 계산
-  env.js              Supabase URL / anon key  ← 직접 채워야 함
-  env.example.js      env.js 템플릿
-  supabaseClient.js   supabase-js 클라이언트 생성 (CDN ESM)
-  auth.js             직원 로그인 (Supabase Auth: signIn/signOut/세션 구독)
-  store.js            데이터 접근 계층 (orders / stores / products CRUD)
-  orders.js           주문 제출·검색·수정·취소 액션
-  admin.js            직원 로그인 액션 + 관리자 액션(상태변경, 매장·떡 관리)
-  events.js           #app 이벤트 위임
   main.js             앱 진입점 (세션 로드, 로그인 상태 구독)
-  render/
-    index.js          렌더 오케스트레이터 (render()) — 직원 전용 탭 게이트
-    header.js          헤더/탭
-    order.js           주문 탭 + 렌더 후처리
-    monitor.js         모니터링 탭 (직원 전용)
-    admin.js           관리자 탭 — 대시보드/연락처검색/설정 (직원 전용)
-    auth.js             직원 로그인 화면 + 로그인 상태 표시줄
-    shared.js          탭 공용 조각 (생산분 요약, 주문표, 주문카드, 통계)
+  core/               앱 셸·공용 인프라 (기능 비의존)
+    state.js          전역 상태 객체 + 초기화 헬퍼
+    app.js            헤더/탭 + 렌더 오케스트레이터 render() — 직원 전용 탭 게이트
+    events.js         #app 이벤트 위임 → 각 기능 events 모듈로 분배
+    supabase.js       supabase-js 클라이언트 생성 (CDN ESM)
+    env.js            Supabase URL / anon key  ← 직접 채워야 함
+    env.example.js    env.js 템플릿
+    utils.js          포맷·escape·전화번호 포맷 등 공용 유틸
+    config.js         기본 상수·시딩용 상품 데이터 (DEFAULT_PRODUCTS, RITUAL_ITEMS)
+  features/
+    order/            고객 주문 흐름
+      data.js         orders 테이블 CRUD + row↔객체 매핑
+      catalog.js      떡 종류 런타임 조회 헬퍼 (가나다 정렬)
+      pricing.js      가격/추가요금 계산
+      actions.js      주문 제출·검색·수정·취소 액션
+      view.js         주문 탭 렌더 + 후처리 + 연락처 푸터
+      events.js       주문 탭 click/input/change 핸들러
+    monitor/          생산분 모니터링 탭 (직원 전용)
+      view.js         모니터링 탭 렌더
+      events.js       날짜 이동·새로고침·인쇄 핸들러
+    admin/            관리자 대시보드 + 설정 (직원 전용)
+      data.js         stores·products 테이블 CRUD
+      actions.js      주문 상태변경·삭제, 매장·떡 관리 액션
+      view.js         대시보드/연락처검색/설정 렌더 + 주문카드 + 통계
+      events.js       admin 화면 + 설정 폼 핸들러
+    auth/             직원 로그인
+      data.js         Supabase Auth (signIn/signOut/세션 구독)
+      actions.js      로그인·로그아웃 액션
+      view.js         로그인 화면 + 로그인 상태 표시줄
+      events.js       로그인 폼 핸들러
+    production/       모니터링·관리자·인쇄 공용 생산분 렌더링
+      aggregate.js    품목별 중량/쪽수 집계 (렌더 없음)
+      view.js         생산분 요약 표 / 주문 목록 표 / 통계 카드
+      print.js        인쇄물(생산분 요약 + 주문 목록) 생성
 supabase/
   schema.sql          테이블(orders/stores/products) + RLS 정책
   products.csv        떡 종류 전체 목록 (Supabase Table Editor 에서 CSV import 용)

@@ -7,7 +7,7 @@
    직원 계정은 Supabase 대시보드 → Authentication → Users 에서
    직접 만듭니다 (앱에는 회원가입 화면이 없습니다).
    ============================================================ */
-import { supabase } from './supabaseClient.js';
+import { supabase } from '../../core/supabase.js';
 
 export async function getSession(){
   if (!supabase) return null;

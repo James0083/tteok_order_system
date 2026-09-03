@@ -5,7 +5,7 @@
    조회 헬퍼만 제공합니다. RITUAL_ITEMS(제사용 편)는 고정이라
    utils.findRitual 을 그대로 사용합니다.
    ============================================================ */
-import { state } from './state.js';
+import { state } from '../../core/state.js';
 
 /* 판매중 상품만, 이름 가나다순 */
 export function activeProducts(){

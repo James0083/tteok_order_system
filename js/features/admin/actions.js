@@ -1,45 +1,16 @@
 /* ============================================================
-   직원 로그인 / 관리자 / 매장 / 떡 종류 액션
+   관리자 액션 : 주문 상태/삭제 · 매장 관리 · 떡 종류 관리
    ============================================================ */
-import { state } from './state.js';
-import { val } from './utils.js';
-import { nextProductId } from './catalog.js';
-import { computeKgPrice } from './pricing.js';
-import { signIn, signOut } from './auth.js';
+import { state } from '../../core/state.js';
+import { val } from '../../core/utils.js';
+import { render } from '../../core/app.js';
+import { nextProductId } from '../order/catalog.js';
+import { computeKgPrice } from '../order/pricing.js';
+import { refreshOrders, updateOrder, removeOrder } from '../order/data.js';
 import {
-  refreshOrders, updateOrder, removeOrder,
   insertStore, removeStore, refreshStores,
   insertProduct, updateProduct, removeProduct, refreshProducts,
-} from './store.js';
-import { render } from './render/index.js';
-
-/* ---------- 직원 로그인 ---------- */
-export async function staffLogin(){
-  var a = state.auth;
-  if (!a.emailInput || !a.passwordInput){
-    a.error = '이메일과 비밀번호를 입력해주세요.';
-    render();
-    return;
-  }
-  a.busy = true; a.error = '';
-  render();
-  var result = await signIn(a.emailInput, a.passwordInput);
-  a.busy = false;
-  if (result.error){
-    a.error = '로그인에 실패했습니다: ' + result.error;
-    render();
-    return;
-  }
-  a.passwordInput = '';
-  a.error = '';
-  // 세션은 auth.js 의 onAuthStateChange 구독(main.js)이 감지해 state.auth.session 을 채우고 다시 render() 합니다.
-}
-
-export async function staffLogout(){
-  await signOut();
-  state.tab = 'order';
-  // state.auth.session 갱신 및 render() 는 onAuthStateChange 구독이 처리합니다.
-}
+} from './data.js';
 
 /* ---------- 관리자 주문 관리 ---------- */
 export async function changeOrderStatus(orderId, newStatus){
