@@ -12,6 +12,7 @@ export function handleClick(btn){
     case 'monitor-date-prev': { state.monitor.date = addDays(state.monitor.date, -1); render(); return true; }
     case 'monitor-date-next': { state.monitor.date = addDays(state.monitor.date, 1); render(); return true; }
     case 'monitor-date-today': { state.monitor.date = todayStr(); render(); return true; }
+    case 'monitor-date-tomorrow': { state.monitor.date = addDays(todayStr(), 1); render(); return true; }
     case 'monitor-refresh': { refreshOrders().then(render); return true; }
     case 'monitor-print': {
       printProductionSheets({

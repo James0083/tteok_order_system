@@ -20,11 +20,13 @@ export function renderMonitorTab(){
   html += '<input type="date" id="monitor-date" value="' + d + '">';
   html += '<button class="btn btn-outline btn-sm" data-action="monitor-date-next">▶</button>';
   html += '<button class="btn btn-outline btn-sm" data-action="monitor-date-today">오늘</button>';
+  html += '<button class="btn btn-outline btn-sm" data-action="monitor-date-tomorrow">내일</button>';
   html += '<span class="dtitle" style="margin-left:6px;">' + esc(fmtDateLong(d)) + (isToday ? ' (오늘)' : '') + ' 생산분</span>';
   html += '<span style="flex:1;"></span>';
   html += '<button class="btn btn-outline btn-sm" data-action="monitor-refresh">새로고침</button>';
   html += '<button class="btn btn-jade btn-sm" data-action="monitor-print">인쇄</button>';
   html += '</div>';
+  html += '<p class="tab-purpose no-print">오늘 생산할 물량을 확인하는 화면입니다. 주문 수정·상태 변경·삭제는 <strong>관리자</strong> 탭에서 하세요.</p>';
 
   html += '<div class="stat-cards">';
   html += statCard('주문 건수', active.length + '건');

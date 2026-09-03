@@ -4,7 +4,7 @@
    index.html 에서 <script type="module" src="./js/main.js"> 로 로드.
    모듈 스크립트는 defer 로 동작하므로 DOM 준비 후 실행됩니다.
    ============================================================ */
-import { state, resetFormFields } from './core/state.js';
+import { state } from './core/state.js';
 import { render } from './core/app.js';
 import { initEvents } from './core/events.js';
 import { isConfigured } from './core/supabase.js';
@@ -21,17 +21,21 @@ onAuthChange(function(session){
   state.auth.session = session;
   if (session){
     state.auth.emailInput = ''; state.auth.passwordInput = ''; state.auth.error = ''; state.auth.busy = false;
+    // 로그아웃 직전에 보던 직원 탭으로 복귀
+    if (state.auth.returnTab){ state.tab = state.auth.returnTab; state.auth.returnTab = ''; }
     refreshOrders().then(render);
   } else if (wasLoggedIn){
-    // 로그아웃: 직원 화면에 있던 데이터를 메모리에서 비우고 주문 탭으로.
+    // 로그아웃: 직원 데이터는 메모리에서 비우되(보안), 고객 주문폼 입력과
+    // 복귀할 탭 정보는 보존한다.
+    if (state.tab === 'monitor' || state.tab === 'admin'){ state.auth.returnTab = state.tab; }
     state.orders = [];
     state.admin.view = 'dashboard';
     state.admin.deleteConfirmId = null;
+    state.admin.cancelConfirmId = null;
     state.admin.search = '';
     state.admin.searched = false;
     state.admin.searchResults = [];
     state.tab = 'order';
-    resetFormFields();
     render();
   }
 });

@@ -4,7 +4,7 @@
 import { state, isStaff } from './state.js';
 import { renderOrderTab, afterOrderRender } from '../features/order/view.js';
 import { renderMonitorTab } from '../features/monitor/view.js';
-import { renderAdminTab } from '../features/admin/view.js';
+import { renderAdminTab, afterAdminRender } from '../features/admin/view.js';
 import { renderStaffLogin } from '../features/auth/view.js';
 
 var STAFF_ONLY_TABS = ['monitor', 'admin'];
@@ -16,7 +16,9 @@ function renderHeader(){
     ['admin', '관리자'],
   ];
   var tabsHtml = tabs.map(function(t){
-    return '<button class="tab-btn ' + (state.tab === t[0] ? 'active' : '') + '" data-action="go-tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
+    var on = state.tab === t[0];
+    return '<button class="tab-btn ' + (on ? 'active' : '') + '"' + (on ? ' aria-current="page"' : '') +
+      ' data-action="go-tab" data-tab="' + t[0] + '">' + t[1] + '</button>';
   }).join('');
   return (
     '<header class="site-header no-print">' +
@@ -46,5 +48,8 @@ export function render(){
 function afterRender(){
   if (state.tab === 'order' && !state.confirmation){
     afterOrderRender();
+  }
+  if (state.tab === 'admin' && isStaff()){
+    afterAdminRender();
   }
 }

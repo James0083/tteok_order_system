@@ -8,11 +8,12 @@ import {
   findRitual, shortId, receiveMethodLabel, lineQtyText,
 } from '../../core/utils.js';
 import { activeProducts, findProduct } from './catalog.js';
-import { unitPriceOf, collectOrderFromDraft } from './pricing.js';
+import { unitPriceOf, collectOrderFromDraft, isValidQty } from './pricing.js';
+import { isConfigured } from '../../core/supabase.js';
 
 export function renderContactFooter(){
-  return '<footer class="contact-foot no-print">주문 관련 문의는 3일 전 미리 연락 부탁드립니다.<br>' +
-    '전화/문자 (' + CONTACT.hours + ') ' + CONTACT.phone1 + ', ' + CONTACT.phone2 + '</footer>';
+  return '<footer class="contact-foot no-print">주문·수정 문의: 전화/문자 (' +
+    CONTACT.hours + ') ' + CONTACT.phone1 + ', ' + CONTACT.phone2 + '</footer>';
 }
 
 export function renderOrderTab(){
@@ -44,9 +45,9 @@ export function renderOrderTab(){
 
   html += '<div class="field" style="margin-top:12px;"><label class="req">수령 방법</label>';
   html += '<div class="method-choice">';
-  html += '<button type="button" class="method-btn ' + (f.receiveMethod === 'store' ? 'active' : '') + '" data-action="pick-receive" data-method="store">매장 수령</button>';
-  html += '<button type="button" class="method-btn ' + (f.receiveMethod === 'factory' ? 'active' : '') + '" data-action="pick-receive" data-method="factory">공장 수령</button>';
-  html += '<button type="button" class="method-btn ' + (f.receiveMethod === 'delivery' ? 'active' : '') + '" data-action="pick-receive" data-method="delivery">집으로 배송</button>';
+  html += methodBtn('store', '매장 수령', f.receiveMethod);
+  html += methodBtn('factory', '공장 수령', f.receiveMethod);
+  html += methodBtn('delivery', '집으로 배송', f.receiveMethod);
   html += '</div>';
   html += '<div id="receive-detail">' + renderReceiveDetail() + '</div>';
   html += '</div>';
@@ -86,11 +87,28 @@ export function renderOrderTab(){
   return html;
 }
 
+function pickQtyWarnText(picker){
+  if (!picker.unit || isValidQty(picker.unit, picker.qty)) return '';
+  return picker.unit === 'kg' ? '0.5 단위로 입력하세요' : '1 이상 정수로 입력하세요';
+}
+
+function methodBtn(method, label, current){
+  var active = current === method;
+  return '<button type="button" class="method-btn ' + (active ? 'active' : '') +
+    '" aria-pressed="' + (active ? 'true' : 'false') +
+    '" data-action="pick-receive" data-method="' + method + '">' + label + '</button>';
+}
+
 export function renderReceiveDetail(){
   var f = state.formFields;
   if (f.receiveMethod === 'store'){
     var storeOptions = state.stores.map(function(s){ return '<option value="' + esc(s.name) + '">'; }).join('');
-    var warn = state.stores.length === 0 ? '<div class="notice notice-warn">등록된 매장이 없습니다. 매장 등록은 관리자 화면에서 할 수 있어요.</div>' : '';
+    var warn = '';
+    if (state.stores.length === 0){
+      warn = !isConfigured
+        ? '<div class="notice notice-warn">백엔드(Supabase) 미설정: 매장 목록을 불러올 수 없습니다. js/core/env.js 를 확인하세요.</div>'
+        : '<div class="notice notice-warn">등록된 매장이 없습니다. 매장 등록은 관리자 화면에서 할 수 있어요.</div>';
+    }
     return '<div class="field" style="margin-top:8px;"><label class="req">수령 매장 (검색 가능)</label>' +
       '<input id="f-store-search" list="store-datalist" placeholder="매장명을 입력해 검색하세요" value="' + esc(f.storeName) + '">' +
       '<datalist id="store-datalist">' + storeOptions + '</datalist>' + warn + '</div>';
@@ -108,12 +126,20 @@ export function renderReceiveDetail(){
 export function renderPickerPanel(){
   var picker = state.draft.picker;
   var product = picker.productId ? findProduct(Number(picker.productId)) : null;
+  var products = activeProducts();
 
-  var html = '<div class="picker-grid">';
+  var html = '';
+  if (!products.length){
+    html += !isConfigured
+      ? '<div class="notice notice-warn">백엔드(Supabase) 미설정: 떡 목록을 불러올 수 없습니다. js/core/env.js 를 확인하세요.</div>'
+      : '<div class="notice notice-warn">주문 가능한 떡이 없습니다. 관리자 → 설정 → 떡 종류 관리에서 추가하거나 판매중으로 바꿔주세요.</div>';
+  }
+
+  html += '<div class="picker-grid">';
 
   html += '<div class="field"><label>① 떡 종류</label><select id="pick-product">';
   html += '<option value="">선택하세요</option>';
-  html += activeProducts().map(function(p){
+  html += products.map(function(p){
     return '<option value="' + p.id + '" ' + (product && product.id === p.id ? 'selected' : '') + '>' + esc(p.name) + '</option>';
   }).join('');
   html += '</select></div>';
@@ -140,7 +166,8 @@ export function renderPickerPanel(){
   var qtyStep = picker.unit === 'kg' ? '0.5' : '1';
   var qtyMin = picker.unit === 'kg' ? '0.5' : '1';
   var qtyHint = picker.unit === 'kg' ? ' <span class="muted">(0.5 단위)</span>' : picker.unit === 'piece' ? ' <span class="muted">(개)</span>' : '';
-  html += '<div class="field"><label>③ 수량' + qtyHint + '</label><input id="pick-qty" type="number" min="' + qtyMin + '" step="' + qtyStep + '" inputmode="decimal" value="' + (picker.qty || qtyMin) + '" ' + (qtyReady ? '' : 'disabled') + '></div>';
+  html += '<div class="field"><label>③ 수량' + qtyHint + '</label><input id="pick-qty" type="number" min="' + qtyMin + '" step="' + qtyStep + '" inputmode="decimal" value="' + (picker.qty || qtyMin) + '" ' + (qtyReady ? '' : 'disabled') + '>' +
+    '<span id="pick-qty-warn" style="color:var(--red); font-size:11.5px;">' + pickQtyWarnText(picker) + '</span></div>';
 
   var needsCut = !!(product && product.cutSelect && (picker.unit === 'mal' || picker.unit === 'half'));
   var fixedNote = (product && product.note && !product.cutSelect) ? product.note : '';
@@ -161,7 +188,7 @@ export function renderPickerPanel(){
 
   html += '</div>'; // picker-grid
 
-  var ready = !!(product && picker.unit && (picker.qty > 0) && (!needsCut || picker.cut));
+  var ready = !!(product && picker.unit && isValidQty(picker.unit, picker.qty) && (!needsCut || picker.cut));
   html += '<button type="button" class="btn btn-primary btn-sm" id="pick-add-btn" data-action="add-cart-line" ' + (ready ? '' : 'disabled') + '>담기</button>';
   return html;
 }
@@ -226,6 +253,16 @@ export function afterOrderRender(){
   if (state.submitError){
     var box = document.getElementById('submit-error');
     if (box) box.innerHTML = '<div class="notice notice-error" style="margin-top:6px;">' + esc(state.submitError) + '</div>';
+    var sel = state.submitErrorField;
+    state.submitErrorField = '';
+    if (sel){
+      requestAnimationFrame(function(){
+        var el = document.querySelector(sel);
+        if (!el) return;
+        el.scrollIntoView({ behavior:'smooth', block:'center' });
+        if (typeof el.focus === 'function' && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) el.focus({ preventScroll:true });
+      });
+    }
   }
 }
 
@@ -262,7 +299,9 @@ export function refreshPickerAddButton(){
   var picker = state.draft.picker;
   var product = picker.productId ? findProduct(Number(picker.productId)) : null;
   var needsCut = !!(product && product.cutSelect && (picker.unit === 'mal' || picker.unit === 'half'));
-  var ready = !!(product && picker.unit && (picker.qty > 0) && (!needsCut || picker.cut));
+  var ready = !!(product && picker.unit && isValidQty(picker.unit, picker.qty) && (!needsCut || picker.cut));
   var btn = document.getElementById('pick-add-btn');
   if (btn) btn.disabled = !ready;
+  var warn = document.getElementById('pick-qty-warn');
+  if (warn) warn.textContent = pickQtyWarnText(picker);
 }

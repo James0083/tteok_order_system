@@ -14,9 +14,16 @@ function digits(v){ return String(v == null ? '' : v).replace(/[^0-9]/g, ''); }
 export function renderOrderCard(order){
   var actions = '';
   if (order.status !== '취소'){
-    actions =
-      '<button class="btn btn-outline btn-sm" data-action="edit-order" data-id="' + order.id + '" data-return="admin">수정</button>' +
-      '<button class="btn btn-danger btn-sm" data-action="cancel-my-order" data-id="' + order.id + '">취소 처리</button>';
+    if (state.admin.cancelConfirmId === order.id){
+      actions =
+        '<span style="font-size:12px;">이 주문을 취소 처리할까요? </span>' +
+        '<button class="btn btn-danger btn-sm" data-action="cancel-my-order-confirm" data-id="' + order.id + '">취소 확정</button> ' +
+        '<button class="btn btn-outline btn-sm" data-action="cancel-my-order-cancel">아니오</button>';
+    } else {
+      actions =
+        '<button class="btn btn-outline btn-sm" data-action="edit-order" data-id="' + order.id + '" data-return="admin">수정</button>' +
+        '<button class="btn btn-danger btn-sm" data-action="cancel-my-order" data-id="' + order.id + '">취소 처리</button>';
+    }
   }
   return (
     '<div class="order-card">' +
@@ -60,13 +67,11 @@ export function renderTrend(){
 function renderSearchBar(){
   var a = state.admin;
   return '<div class="panel no-print" style="padding:12px 16px;">' +
-    '<div class="field-row" style="margin-bottom:0; align-items:flex-end;">' +
-      '<div class="field" style="flex:2;"><label>연락처로 주문 검색 <span class="muted">(전 기간 · 날짜 무관)</span></label>' +
-        '<input id="admin-search" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="' + esc(a.search) + '"></div>' +
-      '<div class="field" style="flex:0 0 auto; flex-direction:row; gap:6px;">' +
-        '<button class="btn btn-primary" data-action="admin-search">검색</button>' +
-        (a.searched ? '<button class="btn btn-outline" data-action="admin-search-clear">날짜별 보기</button>' : '') +
-      '</div>' +
+    '<label class="search-label">연락처로 주문 검색 <span class="muted">(전 기간 · 날짜 무관)</span></label>' +
+    '<div class="search-row">' +
+      '<input id="admin-search" type="tel" inputmode="numeric" placeholder="010-0000-0000" value="' + esc(a.search) + '">' +
+      '<button class="btn btn-primary" data-action="admin-search">검색</button>' +
+      (a.searched ? '<button class="btn btn-outline" data-action="admin-search-clear">날짜별 보기</button>' : '') +
     '</div>' +
   '</div>';
 }
@@ -84,10 +89,15 @@ export function renderAdminTab(){
 
   if (a.searched){
     var r = a.searchResults;
+    html += '<div class="date-nav no-print" style="margin-bottom:6px;">';
+    html += '<span class="dtitle">검색 결과 ' + r.length + '건</span>';
+    html += '<span style="flex:1;"></span>';
+    html += '<button class="btn btn-outline btn-sm" data-action="admin-search-refresh">새로고침 후 재검색</button>';
+    html += '</div>';
+    html += '<p class="tab-purpose no-print">최근 불러온 주문 기준입니다. 방금 들어온 주문이 안 보이면 새로고침하세요.</p>';
     if (!r.length){
       html += '<div class="empty-state">"' + esc(a.search) + '" 연락처로 접수된 주문이 없습니다.</div>';
     } else {
-      html += '<h2 style="margin:4px 0 12px;">검색 결과 ' + r.length + '건</h2>';
       html += r.map(renderOrderCard).join('');
     }
     html += '</div>';
@@ -101,13 +111,15 @@ export function renderAdminTab(){
   html += '<button class="btn btn-outline btn-sm" data-action="admin-date-prev">◀</button>';
   html += '<input type="date" id="admin-date" value="' + a.date + '">';
   html += '<button class="btn btn-outline btn-sm" data-action="admin-date-next">▶</button>';
-  html += '<button class="btn btn-outline btn-sm" data-action="admin-date-today">내일</button>';
+  html += '<button class="btn btn-outline btn-sm" data-action="admin-date-today">오늘</button>';
+  html += '<button class="btn btn-outline btn-sm" data-action="admin-date-tomorrow">내일</button>';
   html += '<span class="dtitle" style="margin-left:6px;">' + esc(fmtDateLong(a.date)) + ' 생산분</span>';
   html += '<span style="flex:1;"></span>';
   html += '<button class="btn btn-outline btn-sm" data-action="admin-refresh">새로고침</button>';
   html += '<button class="btn btn-jade btn-sm" data-action="admin-print">인쇄</button>';
   html += '<button class="btn btn-outline btn-sm" data-action="admin-open-settings">설정</button>';
   html += '</div>';
+  html += '<p class="tab-purpose no-print">주문 접수·수정·상태 변경·매출을 관리하는 화면입니다. 기본은 <strong>내일</strong> 생산분이며, 오늘 현황만 볼 때는 <strong>모니터링</strong> 탭이 편합니다.</p>';
 
   var totalRevenue = activeOrders.reduce(function(s, o){ return s + o.total; }, 0);
 
@@ -133,27 +145,75 @@ export function renderAdminTab(){
   return html;
 }
 
-/* ---------- 관리자 설정 (매장·떡 종류 관리) ---------- */
+/* ---------- 관리자 설정 (떡 종류·매장 관리) ---------- */
 export function renderAdminSettings(){
-  var sf = state.admin.settingsForm;
   var html = '<div class="wrap-wide">';
   html += renderStaffBar();
   html += '<div class="date-nav no-print"><span class="dtitle">관리자 설정</span><span style="flex:1;"></span>' +
     '<button class="btn btn-outline btn-sm" data-action="admin-back-dashboard">← 대시보드로</button></div>';
 
+  html += renderProductManager();
+
   html += '<div class="settings-grid">';
+  html += renderStoreManager();
 
   html += '<div class="panel">';
+  html += '<h2>직원 계정</h2>';
+  html += '<p class="panel-sub">주문조회·모니터링·관리자 화면 로그인은 Supabase Auth 계정으로 관리합니다.</p>';
+  html += '<div class="notice notice-info">직원 계정 추가·삭제·비밀번호 재설정은 Supabase 대시보드 → Authentication → Users 에서 합니다. 이 앱에는 회원가입 화면이 없습니다.</div>';
+  html += '</div>';
+
+  html += '</div>'; // settings-grid
+  html += '</div>';
+  return html;
+}
+
+/* 필터 입력 후 다시 포커스 (render() 가 #app 전체를 교체하므로) */
+export function afterAdminRender(){
+  var id = state.admin.settingsForm.focusId;
+  if (!id) return;
+  state.admin.settingsForm.focusId = '';
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.focus();
+  var v = el.value;
+  try { el.setSelectionRange(v.length, v.length); } catch (e){ /* noop */ }
+}
+
+/* ---------- 매장 관리 ---------- */
+function renderStoreManager(){
+  var sf = state.admin.settingsForm;
+  var q = (sf.storeSearch || '').trim().toLowerCase();
+  var list = state.stores.filter(function(s){
+    if (!q) return true;
+    return (s.name + ' ' + (s.address || '')).toLowerCase().indexOf(q) > -1;
+  });
+
+  var html = '<div class="panel">';
   html += '<h2>매장 관리</h2>';
   html += '<p class="panel-sub">고객이 "매장 수령"에서 검색할 수 있는 매장 목록입니다.</p>';
   if (sf.storeMsg){ html += '<div class="notice ' + (sf.storeMsgType === 'error' ? 'notice-error' : 'notice-ok') + '">' + esc(sf.storeMsg) + '</div>'; }
-  html += '<div class="store-list">';
+
+  html += '<div class="list-filter-row">';
+  html += '<input id="set-store-q" type="search" placeholder="매장 이름·주소 검색 (' + state.stores.length + '개)" value="' + esc(sf.storeSearch) + '">';
+  html += '<button class="btn btn-primary btn-sm" data-action="store-filter">검색</button>';
+  if ((sf.storeSearch || '').trim()){ html += '<button class="btn btn-outline btn-sm" data-action="store-filter-clear">전체</button>'; }
+  html += '</div>';
+  html += '<div class="store-list list-5">';
   if (!state.stores.length){
     html += '<div class="empty-state">등록된 매장이 없습니다.</div>';
+  } else if (!list.length){
+    html += '<div class="empty-state">"' + esc(sf.storeSearch) + '" 검색 결과가 없습니다.</div>';
   } else {
-    html += state.stores.map(function(s){
+    html += list.map(function(s){
+      var confirming = sf.storeDeleteId === s.id || sf.storeDeleteId === String(s.id);
+      var right = confirming
+        ? '<span style="font-size:12px;">삭제할까요? </span>' +
+          '<button class="btn btn-danger btn-sm" data-action="delete-store-confirm" data-id="' + s.id + '">확정</button> ' +
+          '<button class="btn btn-outline btn-sm" data-action="delete-store-cancel">취소</button>'
+        : '<button class="link-btn" data-action="delete-store" data-id="' + s.id + '">삭제</button>';
       return '<div class="store-row"><div><strong>' + esc(s.name) + '</strong>' + (s.address ? ('<br><span class="muted" style="font-size:12px;">' + esc(s.address) + '</span>') : '') + '</div>' +
-        '<button class="link-btn" data-action="delete-store" data-id="' + s.id + '">삭제</button></div>';
+        right + '</div>';
     }).join('');
   }
   html += '</div>';
@@ -163,37 +223,34 @@ export function renderAdminSettings(){
   html += '</div>';
   html += '<button class="btn btn-outline btn-sm" data-action="add-store">매장 추가</button>';
   html += '</div>';
-
-  html += '<div class="panel">';
-  html += '<h2>직원 계정</h2>';
-  html += '<p class="panel-sub">주문조회·모니터링·관리자 화면 로그인은 Supabase Auth 계정으로 관리합니다.</p>';
-  html += '<div class="notice notice-info">직원 계정 추가·삭제·비밀번호 재설정은 Supabase 대시보드 → Authentication → Users 에서 합니다. 이 앱에는 회원가입 화면이 없습니다.</div>';
-  html += '</div>';
-
-  html += '</div>'; // settings-grid
-
-  html += renderProductManager();
-
-  html += '</div>';
   return html;
 }
 
 /* ---------- 떡 종류 관리 ---------- */
 function renderProductManager(){
   var sf = state.admin.settingsForm;
-  var list = state.products.slice().sort(function(a, b){ return a.name.localeCompare(b.name, 'ko'); });
+  var q = (sf.prodSearch || '').trim().toLowerCase();
+  var all = state.products.slice().sort(function(a, b){ return a.name.localeCompare(b.name, 'ko'); });
+  var list = q ? all.filter(function(p){ return p.name.toLowerCase().indexOf(q) > -1; }) : all;
 
   var editId = sf.prodEdit ? sf.prodEdit.id : null;
 
   var html = '<div class="panel">';
   html += '<h2>떡 종류 관리</h2>';
-  html += '<p class="panel-sub">주문서의 "떡 담기" 드롭다운에 나오는 목록입니다. 가나다순으로 표시됩니다.</p>';
+  html += '<p class="panel-sub">주문서의 "떡 담기" 드롭다운에 나오는 목록입니다. 가나다순으로 표시됩니다. "판매" 를 <strong>중단</strong>으로 바꾸면 주문서에서 숨겨지고, 주문 이력은 그대로 보존됩니다.</p>';
   if (sf.prodMsg){ html += '<div class="notice ' + (sf.prodMsgType === 'error' ? 'notice-error' : 'notice-ok') + '">' + esc(sf.prodMsg) + '</div>'; }
 
-  html += '<div class="table-scroll" style="margin-bottom:12px;"><table class="dtab" style="min-width:0;">';
-  html += '<thead><tr><th>떡 이름</th><th class="num">1말</th><th class="num">1/2말</th><th class="num">1kg</th><th class="num">개당</th><th>쪽수선택</th><th>추가요금</th><th class="no-print">관리</th></tr></thead><tbody>';
-  if (!list.length){
-    html += '<tr><td colspan="8" class="empty-state">등록된 떡이 없습니다.</td></tr>';
+  html += '<div class="list-filter-row">';
+  html += '<input id="set-prod-q" type="search" placeholder="떡 이름 검색 (' + all.length + '종)" value="' + esc(sf.prodSearch) + '">';
+  html += '<button class="btn btn-primary btn-sm" data-action="prod-filter">검색</button>';
+  if ((sf.prodSearch || '').trim()){ html += '<button class="btn btn-outline btn-sm" data-action="prod-filter-clear">전체</button>'; }
+  html += '</div>';
+  html += '<div class="table-scroll vscroll-5" style="margin-bottom:12px;"><table class="dtab" style="min-width:0;">';
+  html += '<thead><tr><th>떡 이름</th><th class="num">1말</th><th class="num">1/2말</th><th class="num">1kg</th><th class="num">개당</th><th>쪽수선택</th><th>추가요금</th><th>판매</th><th class="no-print">관리</th></tr></thead><tbody>';
+  if (!all.length){
+    html += '<tr><td colspan="9" class="empty-state">등록된 떡이 없습니다.</td></tr>';
+  } else if (!list.length){
+    html += '<tr><td colspan="9" class="empty-state">"' + esc(sf.prodSearch) + '" 검색 결과가 없습니다.</td></tr>';
   } else {
     list.forEach(function(p){
       var confirming = sf.prodDeleteId === String(p.id) || sf.prodDeleteId === p.id;
@@ -208,7 +265,10 @@ function renderProductManager(){
         actions = '<button class="link-btn" data-action="edit-product" data-id="' + p.id + '">수정</button> · ' +
           '<button class="link-btn" data-action="delete-product" data-id="' + p.id + '">삭제</button>';
       }
-      html += '<tr' + (editing ? ' style="background:var(--paper-2);"' : '') + '>' +
+      var isActive = p.active !== false;
+      var saleToggle = '<button class="btn btn-sm ' + (isActive ? 'btn-jade' : 'btn-outline') + ' no-print" ' +
+        'data-action="toggle-product-active" data-id="' + p.id + '">' + (isActive ? '판매중' : '중단') + '</button>';
+      html += '<tr' + (editing ? ' style="background:var(--paper-2);"' : '') + (isActive ? '' : ' class="row-inactive"') + '>' +
         '<td>' + esc(p.name) + (p.note ? ('<br><span class="muted" style="font-size:11.5px;">' + esc(p.note) + '</span>') : '') + '</td>' +
         '<td class="num tabular">' + fmtWon(p.mal) + '</td>' +
         '<td class="num tabular">' + (p.half == null ? '-' : fmtWon(p.half)) + '</td>' +
@@ -216,6 +276,7 @@ function renderProductManager(){
         '<td class="num tabular">' + (p.piecePrice > 0 ? fmtWon(p.piecePrice) : '-') + '</td>' +
         '<td>' + (p.cutSelect ? 'O' : '-') + '</td>' +
         '<td>' + (p.surchargeEligible ? 'O' : '-') + '</td>' +
+        '<td>' + saleToggle + '</td>' +
         '<td>' + actions + '</td>' +
       '</tr>';
     });
@@ -254,6 +315,7 @@ function renderProductForm(mode, v){
   html += '<label class="checkline"><input type="checkbox" id="' + pfx + 'cut" ' + (v.cutSelect ? 'checked' : '') + '> 쪽수(40/50/60쪽) 선택이 필요한 떡</label>';
   html += '<label class="checkline"><input type="checkbox" id="' + pfx + 'surcharge" ' + (v.surchargeEligible ? 'checked' : '') + '> 단독 주문 시 1말당 10,000원 추가요금 대상 (절편·바람떡류)</label>';
   if (isEdit){
+    html += '<label class="checkline"><input type="checkbox" id="' + pfx + 'active" ' + (v.active !== false ? 'checked' : '') + '> 판매중 (체크 해제 = 주문서에서 숨김)</label>';
     html += '<div style="margin-top:8px; display:flex; gap:6px;">';
     html += '<button class="btn btn-primary btn-sm" data-action="save-product">수정 저장</button>';
     html += '<button class="btn btn-outline btn-sm" data-action="edit-product-cancel">취소</button>';

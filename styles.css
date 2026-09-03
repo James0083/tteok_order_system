@@ -75,6 +75,8 @@ main{flex:1; width:100%;}
 /* ---------- item picker ---------- */
 .picker-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px;}
 @media (max-width:680px){ .picker-grid{grid-template-columns:1fr 1fr;} }
+/* 모바일: 상단·하단 동시 고정이 폼 영역을 압박 → 헤더는 스크롤에 따라가지 않게 */
+@media (max-width:680px){ .site-header{position:static;} }
 .picker-grid .field label{white-space:nowrap;}
 .fixed-note{font-size:12.5px; color:var(--jade-deep); background:var(--ok-bg,#E4EEE8); border-radius:4px; padding:8px 9px; line-height:1.4;}
 .cart-list{border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-top:14px;}
@@ -128,10 +130,15 @@ main{flex:1; width:100%;}
 .order-card-top .oid{font-size:11.5px; color:var(--ink-soft);}
 .order-card-top .odate{font-weight:700; font-size:14.5px;}
 .badge{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:700;}
+.badge::before{margin-right:4px;}
 .badge-접수{background:#F4E9CE; color:#8A6A16;}
+.badge-접수::before{content:'◔';}
 .badge-생산중{background:#DCE8E1; color:var(--jade-deep);}
+.badge-생산중::before{content:'◑';}
 .badge-완료{background:var(--jade); color:#fff;}
+.badge-완료::before{content:'✓';}
 .badge-취소{background:#EEE; color:#888; text-decoration:line-through;}
+.badge-취소::before{content:'✕';}
 .order-items-sum{font-size:13px; color:var(--ink-soft); margin-bottom:8px; line-height:1.6; white-space:pre-line;}
 .order-card-bottom{display:flex; justify-content:space-between; align-items:center; gap:10px;}
 .order-amt{font-weight:700; font-size:15px;}
@@ -143,11 +150,26 @@ main{flex:1; width:100%;}
 .pin-box input{text-align:center; letter-spacing:.3em; font-size:18px;}
 .date-nav{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
 .date-nav .dtitle{font-size:16px; font-weight:700; font-family:'Noto Serif KR',serif;}
+.tab-purpose{font-size:12.5px; color:var(--ink-soft); background:var(--paper-2); border-radius:6px; padding:8px 12px; margin:-6px 0 16px;}
+.row-inactive td{color:var(--ink-soft); background:repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(0,0,0,.02) 6px, rgba(0,0,0,.02) 12px);}
 .stat-cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px;}
 .stat-card{background:var(--white); border:1px solid var(--line); border-radius:6px; padding:12px 14px;}
 .stat-card .slbl{font-size:12px; color:var(--ink-soft); margin-bottom:4px;}
 .stat-card .sval{font-size:20px; font-weight:700;}
 .table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:6px;}
+/* 세로 5줄 스크롤 + 헤더 고정 */
+.table-scroll.vscroll-5{overflow-y:auto; max-height:15rem;}
+.table-scroll.vscroll-5 table.dtab thead th{position:sticky; top:0; z-index:2;}
+/* 대시보드 연락처 검색 바 */
+.search-label{display:block; font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:5px;}
+.search-row{display:flex; gap:6px;}
+.search-row input{flex:1; min-width:0; height:42px;}
+.search-row .btn{height:42px; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center; white-space:nowrap;}
+
+/* 목록 필터 (검색 입력 + 버튼) */
+.list-filter-row{display:flex; gap:6px; margin-bottom:8px;}
+.list-filter-row input{flex:1; min-width:0; height:38px;}
+.list-filter-row .btn{height:38px; padding-top:0; padding-bottom:0; display:inline-flex; align-items:center; white-space:nowrap;}
 /* .fit : 표가 페이지 폭을 다 채우지 않고 내용만큼만 차지, 좌측 밀착 */
 .table-scroll.fit{display:inline-block; max-width:100%; vertical-align:top;}
 table.dtab{width:100%; border-collapse:collapse; font-size:13.5px; min-width:520px;}
@@ -173,6 +195,7 @@ table.dtab td.num, table.dtab th.num{text-align:right; width:20px; white-space:n
 .store-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-bottom:1px solid var(--line); font-size:13.5px;}
 .store-row:last-child{border-bottom:none;}
 .store-list{border:1px solid var(--line); border-radius:6px; overflow:hidden; margin-bottom:12px;}
+.store-list.list-5{overflow-y:auto; max-height:12rem;}
 
 footer.contact-foot{max-width:820px; margin:0 auto; padding:0 16px 30px; font-size:12px; color:var(--ink-soft); text-align:center;}
 

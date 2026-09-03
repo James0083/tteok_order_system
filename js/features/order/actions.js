@@ -4,7 +4,7 @@
 import { state, makeEmptyDraft, resetFormFields } from '../../core/state.js';
 import { val, genId, addDays, todayStr, formatPhone, phoneDigits } from '../../core/utils.js';
 import { collectOrderFromDraft } from './pricing.js';
-import { loadOrders, insertOrder, updateOrder, refreshOrders } from './data.js';
+import { insertOrder, updateOrder, refreshOrders } from './data.js';
 import { render } from '../../core/app.js';
 
 /* ---------- 입력값 → 저장 payload ---------- */
@@ -20,17 +20,17 @@ export function buildOrderPayload(){
 
   var totals = collectOrderFromDraft();
 
-  if (!inStore && (!phone || phoneDigits(phone).length < 9)){ return { error:'연락처를 정확히 입력해주세요. (매장 접수 주문이면 위 체크박스를 선택하세요)' }; }
-  if (inStore && phone && phoneDigits(phone).length < 9){ return { error:'연락처를 입력하셨다면 정확히 입력하거나 비워주세요.' }; }
-  if (!deliveryDate){ return { error:'수령(배송) 희망일을 선택해주세요.' }; }
-  if (deliveryDate < addDays(todayStr(), 1)){ return { error:'수령 희망일은 내일 이후로 선택해주세요.' }; }
-  if (!receiveMethod){ return { error:'수령 방법(매장 수령/공장 수령/집으로 배송)을 선택해주세요.' }; }
+  if (!inStore && (!phone || phoneDigits(phone).length < 9)){ return { error:'연락처를 정확히 입력해주세요. (매장 접수 주문이면 위 체크박스를 선택하세요)', field:'#f-phone' }; }
+  if (inStore && phone && phoneDigits(phone).length < 9){ return { error:'연락처를 입력하셨다면 정확히 입력하거나 비워주세요.', field:'#f-phone' }; }
+  if (!deliveryDate){ return { error:'수령(배송) 희망일을 선택해주세요.', field:'#f-date' }; }
+  if (deliveryDate < addDays(todayStr(), 1)){ return { error:'수령 희망일은 내일 이후로 선택해주세요.', field:'#f-date' }; }
+  if (!receiveMethod){ return { error:'수령 방법(매장 수령/공장 수령/집으로 배송)을 선택해주세요.', field:'.method-choice' }; }
   if (receiveMethod === 'store'){
     var storeOk = state.stores.some(function(s){ return s.name === storeName; });
-    if (!storeName || !storeOk){ return { error:'목록에 있는 매장을 검색해 선택해주세요.' }; }
+    if (!storeName || !storeOk){ return { error:'목록에 있는 매장을 검색해 선택해주세요.', field:'#f-store-search' }; }
   }
-  if (receiveMethod === 'delivery' && !address){ return { error:'배송 받으실 주소를 입력해주세요.' }; }
-  if (totals.items.length === 0 && totals.ritual.length === 0){ return { error:'주문할 떡을 1개 이상 담아주세요.' }; }
+  if (receiveMethod === 'delivery' && !address){ return { error:'배송 받으실 주소를 입력해주세요.', field:'#f-address' }; }
+  if (totals.items.length === 0 && totals.ritual.length === 0){ return { error:'주문할 떡을 1개 이상 담아주세요.', field:'#picker-panel' }; }
 
   return { payload:{
     phone:phone, inStore:inStore, deliveryDate:deliveryDate, memo:memo,
@@ -45,8 +45,14 @@ export function buildOrderPayload(){
 
 export async function submitOrder(){
   var result = buildOrderPayload();
-  if (result.error){ state.submitError = result.error; render(); return; }
+  if (result.error){
+    state.submitError = result.error;
+    state.submitErrorField = result.field || '';
+    render();
+    return;
+  }
   state.submitError = '';
+  state.submitErrorField = '';
   var btn = document.getElementById('submit-btn');
   if (btn){ btn.disabled = true; btn.textContent = '저장 중...'; }
 
@@ -63,6 +69,7 @@ export async function submitOrder(){
 
   if (!ok){
     state.submitError = '저장에 실패했습니다. 잠시 후 다시 시도해주세요. (백엔드 연결 확인)';
+    state.submitErrorField = '#submit-error';
     render();
     return;
   }
@@ -90,9 +97,10 @@ export async function runOrderSearch(){
   state.admin.search = raw;
   var digits = phoneDigits(raw);
   if (!digits){ clearOrderSearch(); return; }
-  var orders = await loadOrders();
-  state.orders = orders;
-  var results = orders.filter(function(o){ return phoneDigits(o.phone).indexOf(digits) > -1; });
+  // state.orders 는 관리자 탭 진입 시 refreshOrders() 로 이미 전 주문이 로드됨.
+  // 비어 있을 때(딥링크 등)만 1회 재조회.
+  if (!state.orders.length){ await refreshOrders(); }
+  var results = state.orders.filter(function(o){ return phoneDigits(o.phone).indexOf(digits) > -1; });
   results.sort(function(a, b){ return b.createdAt.localeCompare(a.createdAt); });
   state.admin.searched = true;
   state.admin.searchResults = results;
@@ -120,6 +128,7 @@ export function startEditOrder(orderId, returnTab){
   state.editing = { orderId: order.id, returnTab: returnTab || 'admin' };
   state.confirmation = null;
   state.submitError = '';
+  state.submitErrorField = '';
   state.tab = 'order';
   render();
 }

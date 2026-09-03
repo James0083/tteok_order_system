@@ -22,6 +22,21 @@ export function computeKgPrice(mal, half){
   return 0;
 }
 
+/* 수량 유효성: kg 는 0.5 단위, 그 외는 1 이상 정수 */
+export function isValidQty(unit, qty){
+  var n = Number(qty);
+  if (!(n > 0)) return false;
+  if (unit === 'kg') return n >= 0.5 && Math.round(n * 2) === n * 2;
+  return n >= 1 && Number.isInteger(n);
+}
+
+/* 입력 수량을 담기 직전 규칙에 맞게 보정 */
+export function normalizeQty(unit, qty){
+  var n = Number(qty) || 0;
+  if (unit === 'kg') return Math.max(0.5, Math.round(n * 2) / 2);
+  return Math.max(1, Math.round(n));
+}
+
 /* 주문 단위 → 말(10kg) 환산 계수. 낱개는 0 (중량 무시). */
 export function unitToMal(unit){
   if (unit === 'mal') return 1;

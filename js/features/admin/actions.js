@@ -122,11 +122,27 @@ export async function saveProductEdit(){
     cutSelect: !!e.cutSelect,
     note: (e.note || '').trim(),
     surchargeEligible: !!e.surchargeEligible,
+    active: e.active !== false,
   });
   if (!ok){ sf.prodMsg = '저장에 실패했습니다. (백엔드 연결 확인)'; sf.prodMsgType = 'error'; render(); return; }
   await refreshProducts();
   sf.prodEdit = null;
   sf.prodMsg = '"' + name + '" 수정되었습니다.'; sf.prodMsgType = 'ok';
+  render();
+}
+
+export async function toggleProductActive(id){
+  var sf = state.admin.settingsForm;
+  var pid = Number(id);
+  var p = state.products.find(function(x){ return x.id === pid; });
+  if (!p) return;
+  var next = p.active === false;   // 중단 → 판매중, 판매중 → 중단
+  var ok = await updateProduct(pid, { active: next });
+  if (ok) await refreshProducts();
+  sf.prodMsg = ok
+    ? ('"' + p.name + '" ' + (next ? '판매를 재개했습니다.' : '판매를 중단했습니다. (주문서에서 숨김)'))
+    : '변경에 실패했습니다.';
+  sf.prodMsgType = ok ? 'ok' : 'error';
   render();
 }
 
